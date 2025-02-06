@@ -74,3 +74,18 @@ def read_s3_data_auto(spark, s3_bucket, s3_prefix, format="parquet"):
     print(f"- Adaptive Partitions: {df.rdd.getNumPartitions()}")
 
     return df
+
+
+ s3_bucket = "dev07-cc1-mldev-s3-mlops-rdat-workspace"
+s3_prefix = "stimulated_data_big_data_v3/"
+
+# Create auto-optimized Spark session
+spark = get_auto_spark_session(s3_bucket, s3_prefix)
+
+# Read data auto-optimized
+df = read_s3_data_auto(spark, s3_bucket, s3_prefix, format="parquet")
+
+# Show schema and sample
+df.printSchema()
+df.show(5)
+
