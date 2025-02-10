@@ -33,3 +33,39 @@ while True:
         break
     
     time.sleep(10)  # Check every 10 seconds
+
+
+
+    ###
+
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
+
+# Initialize Spark & Glue
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+
+# Tune Spark settings
+spark.conf.set("spark.sql.shuffle.partitions", "200")
+spark.conf.set("spark.executor.memory", "10g")
+spark.conf.set("spark.driver.memory", "4g")
+spark.conf.set("spark.dynamicAllocation.enabled", "true")
+spark.conf.set("spark.sql.parquet.compression.codec", "snappy")
+
+# Read JSON with optimized settings
+df = spark.read.option("inferSchema", "true").json("s3://my-bucket/sample.json").repartition(50)
+
+# Convert to AWS Glue DynamicFrame
+dyf = DynamicFrame.fromDF(df, glueContext, "df_dyf")
+
+# Optimize partitioning
+dyf = dyf.repartition(50)
+
+# Convert back to DataFrame (if needed)
+df = dyf.toDF()
+
+# Show Data
+df.show()
+
