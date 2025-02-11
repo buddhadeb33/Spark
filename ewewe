@@ -1,0 +1,68 @@
+# %% [code]
+# Import necessary libraries from Spark and AWS Glue
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+# Initialize Spark and Glue contexts
+sc = SparkContext.getOrCreate()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+
+# -------------------------------
+# Spark Configuration Optimizations
+# -------------------------------
+# Enable Parquet predicate pushdown to reduce the amount of data read
+spark.conf.set("spark.sql.parquet.filterPushdown", "true")
+
+# Disable schema merging if your data files share the same schema for faster reads
+spark.conf.set("spark.sql.parquet.mergeSchema", "false")
+
+# Adjust the maximum number of bytes per partition if needed (here, set to 128 MB)
+spark.conf.set("spark.sql.files.maxPartitionBytes", "134217728")
+
+# -------------------------------
+# Reading Parquet Data from S3
+# -------------------------------
+# Specify the S3 path where your Parquet files are located.
+# Replace <your-bucket> and <your-data-path> with your actual bucket and folder.
+parquet_path = "s3://<your-bucket>/<your-data-path>/"
+
+# Read the Parquet files into a Spark DataFrame.
+# Spark will automatically use the optimizations set above.
+df = spark.read.parquet(parquet_path)
+
+# Optionally, if your data is partitioned (e.g., by a 'date' column), apply a filter to leverage partition pruning.
+# Uncomment and adjust the filter below as needed:
+# df = df.filter(col("date") >= "2023-01-01")
+
+# Cache the DataFrame in memory if you plan to run multiple operations on it.
+df.cache()
+
+# -------------------------------
+# Sample Data Processing
+# -------------------------------
+# Show the first 5 rows of the DataFrame
+df.show(5)
+
+# Print the schema to verify the data structure
+df.printSchema()
+
+# Run an example aggregation (e.g., count the total number of rows)
+row_count = df.count()
+print("Total row count:", row_count)
+
+# -------------------------------
+# (Optional) Convert to AWS Glue DynamicFrame
+# -------------------------------
+# If you plan to use AWS Glue ETL transformations or write out using Glue's writers,
+# you can convert the Spark DataFrame to a DynamicFrame.
+from awsglue.dynamicframe import DynamicFrame
+
+dyf = DynamicFrame.fromDF(df, glueContext, "dyf")
+# Now you can use Glue-specific transforms on 'dyf', if needed.
+
+# -------------------------------
+# End of Script
+# -------------------------------
