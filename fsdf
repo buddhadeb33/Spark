@@ -1,0 +1,57 @@
+import sys
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.transforms import ApplyMapping
+from pyspark.sql import SparkSession
+
+# ✅ Initialize Spark and AWS Glue Context
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+
+# ✅ Optimize Spark Configurations for Performance
+sc._jsc.hadoopConfiguration().set("spark.executor.memory", "4g")  # Set executor memory
+sc._jsc.hadoopConfiguration().set("spark.driver.memory", "2g")  # Set driver memory
+sc._jsc.hadoopConfiguration().set("spark.sql.shuffle.partitions", "200")  # Reduce shuffle overhead
+sc._jsc.hadoopConfiguration().set("spark.default.parallelism", "200")  # Improve parallel execution
+sc._conf.set("spark.executor.extraJavaOptions", "-XX:+UseG1GC")  # Optimize Garbage Collection
+spark.conf.set("spark.sql.optimizer.dynamicPartitionPruning", "true")  # Enable Partition Pruning
+
+# ✅ Read Data from AWS Glue Catalog (Apply Partition Filtering)
+source_df = glueContext.create_dynamic_frame.from_catalog(
+    database="my_db", 
+    table_name="my_table",
+    push_down_predicate="year == '2024'"  # Read only relevant partitions
+)
+
+# ✅ Optimize Schema Handling
+optimized_df = ApplyMapping.apply(
+    frame=source_df,
+    mappings=[("col1", "string", "new_col1", "string")]
+)
+optimized_df = optimized_df.resolveChoice(specs=[("new_col1", "cast:int")])  # Cast types explicitly
+
+# ✅ Optimize Writing to S3 (Use Parquet and Partitioning)
+connection_options = {
+    "path": "s3://my-bucket/",
+    "partitionKeys": ["year", "month"],  # Partitioning for efficient storage
+    "boundedFiles": "100"  # Control parallel file writes
+}
+
+# ✅ Repartition Data before Writing for Parallelism
+optimized_df = optimized_df.repartition(10)  # Adjust based on dataset size
+
+glueContext.write_dynamic_frame.from_options(
+    frame=optimized_df,
+    connection_type="s3",
+    connection_options=connection_options,
+    format="parquet"  # Use columnar format for better performance
+)
+
+# ✅ Debugging: Show Sample Data & Count
+optimized_df.toDF().show(5)
+print(f"Total Rows: {optimized_df.count()}")
+
+# ✅ Get Spark UI for Performance Monitoring
+print(glueContext.getSparkUIPath())
