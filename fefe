@@ -1,37 +1,60 @@
+#!/usr/bin/env python
+"""
+Example AWS Glue Job Script
+This script reads data from an input path, applies a simple transformation,
+and writes the processed data to an output path.
+"""
+
 import sys
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
-from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
+from awsglue.job import Job
 
-# Get parameters passed to the script
-args = getResolvedOptions(sys.argv, ["JOB_NAME", "INPUT_PATH", "OUTPUT_PATH"])
+# -----------------------------------------------------------------------------------
+# Step 1. Parse arguments passed to the job.
+# -----------------------------------------------------------------------------------
+# Required arguments: JOB_NAME, INPUT_PATH, OUTPUT_PATH.
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'INPUT_PATH', 'OUTPUT_PATH'])
 
-# Initialize Spark and Glue context
+# -----------------------------------------------------------------------------------
+# Step 2. Initialize Spark and Glue contexts.
+# -----------------------------------------------------------------------------------
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 
-# Print arguments for debugging
-print(f"Job Name: {args['JOB_NAME']}")
-print(f"Input Path: {args['INPUT_PATH']}")
-print(f"Output Path: {args['OUTPUT_PATH']}")
+# -----------------------------------------------------------------------------------
+# Step 3. Initialize the Glue Job.
+# -----------------------------------------------------------------------------------
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
 
-# Read data from S3 (assuming CSV format)
-df = spark.read.option("header", "true").csv(args["INPUT_PATH"])
+# -----------------------------------------------------------------------------------
+# Step 4. Read the input data.
+# -----------------------------------------------------------------------------------
+# Change "parquet" to your actual data format if needed (e.g., "csv", "json")
+input_df = spark.read.format("parquet").load(args['INPUT_PATH'])
+# Optionally, print the schema to verify the data structure
+input_df.printSchema()
 
-# Perform transformations (example: select specific columns)
-df_transformed = df.select("column1", "column2")
+# -----------------------------------------------------------------------------------
+# Step 5. Data Transformation Logic.
+# -----------------------------------------------------------------------------------
+# For example, filter out records where the 'id' column is NULL.
+# Replace "id" with a column that exists in your dataset.
+transformed_df = input_df.filter("id IS NOT NULL")
 
-# Write the transformed data back to S3
-df_transformed.write.mode("overwrite").csv(args["OUTPUT_PATH"])
+# You can perform additional transformations here...
+# e.g., select columns, join with other data, aggregate, etc.
 
-print(f"Processing completed. Output saved to: {args['OUTPUT_PATH']}")
+# -----------------------------------------------------------------------------------
+# Step 6. Write the processed data to the output path.
+# -----------------------------------------------------------------------------------
+# This example writes the data in Parquet format. Modify as needed.
+transformed_df.write.mode("overwrite").parquet(args['OUTPUT_PATH'])
 
-
-
-
-!spark-submit glue_script.py \
-  --JOB_NAME "MyGlueJob" \
-  --INPUT_PATH "s3://your-bucket/input-data/" \
-  --OUTPUT_PATH "s3://your-bucket/output-data/"
+# -----------------------------------------------------------------------------------
+# Step 7. Commit the job.
+# -----------------------------------------------------------------------------------
+job.commit()
