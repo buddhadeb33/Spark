@@ -1,0 +1,85 @@
+import sys
+from pyspark.context import SparkContext
+from pyspark.sql.functions import sum as spark_sum, avg, count, max as spark_max, min as spark_min
+from pyspark.sql.functions import col
+from awsglue.context import GlueContext
+from awsglue.utils import getResolvedOptions
+from awsglue.job import Job
+
+# Parse Glue job arguments
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+job_name = args['JOB_NAME']
+
+# Initialize Spark and Glue contexts
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(job_name, args)
+
+# --------------------------------------------------------------------------------
+# 1. Read Data from S3 (Parquet Format)
+# --------------------------------------------------------------------------------
+s3_input_path = "s3://your-bucket-name/path/to/input-data/"
+df = spark.read.parquet(s3_input_path)
+
+# Print schema for debugging
+df.printSchema()
+df.show(5)
+
+# --------------------------------------------------------------------------------
+# 2. Transaction Summary Aggregation (By Account Type)
+# --------------------------------------------------------------------------------
+agg_transaction_summary = df.groupBy("dummy_Account_type").agg(
+    spark_sum("dummy_balance").alias("total_balance"),
+    avg("dummy_balance").alias("avg_balance"),
+    count("Transaction_date").alias("num_transactions"),
+    spark_max("dummy_balance").alias("max_balance"),
+    spark_min("dummy_balance").alias("min_balance")
+)
+
+# --------------------------------------------------------------------------------
+# 3. Customer-Level Aggregation (By Merchant)
+# --------------------------------------------------------------------------------
+agg_customer_summary = df.groupBy("dummy_Merchant").agg(
+    count("Transaction_date").alias("total_transactions"),
+    avg("dummy_balance").alias("avg_transaction_amount"),
+    spark_sum(col("has_loan").cast("int")).alias("total_loans")
+)
+
+# --------------------------------------------------------------------------------
+# 4. Currency-Based Aggregation
+# --------------------------------------------------------------------------------
+agg_currency_summary = df.groupBy("dummy_Currency").agg(
+    spark_sum("dummy_balance").alias("total_currency_balance")
+)
+
+# --------------------------------------------------------------------------------
+# 5. Branch-Level Revenue Aggregation
+# --------------------------------------------------------------------------------
+agg_branch_revenue = df.groupBy("dummy_Branch_code").agg(
+    spark_sum(col("dummy_balance") + col("dummy_inc") - col("closing_dummy_bal")).alias("total_branch_revenue")
+)
+
+# --------------------------------------------------------------------------------
+# 6. Interest Rate Aggregation (By Category)
+# --------------------------------------------------------------------------------
+agg_category_interest = df.groupBy("dummy_category").agg(
+    avg("dummy_interest_rate").alias("avg_interest_rate")
+)
+
+# --------------------------------------------------------------------------------
+# 7. Write Aggregated Data Back to S3 (Parquet Format)
+# --------------------------------------------------------------------------------
+s3_output_path = "s3://your-bucket-name/path/to/output-data/"
+
+agg_transaction_summary.write.mode("overwrite").parquet(s3_output_path + "transaction_summary/")
+agg_customer_summary.write.mode("overwrite").parquet(s3_output_path + "customer_summary/")
+agg_currency_summary.write.mode("overwrite").parquet(s3_output_path + "currency_summary/")
+agg_branch_revenue.write.mode("overwrite").parquet(s3_output_path + "branch_revenue/")
+agg_category_interest.write.mode("overwrite").parquet(s3_output_path + "category_interest/")
+
+# --------------------------------------------------------------------------------
+# 8. Finalize the Job
+# --------------------------------------------------------------------------------
+job.commit()
