@@ -1,15 +1,24 @@
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
+import boto3
 
-def slow_function(val):
-    return val.lower()
+glue_client = boto3.client("glue")
 
-slow_udf = udf(slow_function, StringType())
-df = df.withColumn("new_col", slow_udf("old_col"))  # Very slow!
+response = glue_client.create_job(
+    Name="MyGlueJob",
+    Role="arn:aws:iam::your-account-id:role/your-glue-role",
+    Command={
+        "Name": "glueetl",
+        "ScriptLocation": "s3://your-bucket/scripts/glue_script.py",
+        "PythonVersion": "3"
+    },
+    DefaultArguments={
+        "--job-language": "python",
+        "--TempDir": "s3://your-bucket/temp/",
+        "--extra-py-files": "s3://your-bucket/libs/mylib.zip"
+    },
+    GlueVersion="3.0",
+    WorkerType="G.1X",
+    NumberOfWorkers=2,
+    MaxRetries=1
+)
 
-
-from pyspark.sql.window import Window
-from pyspark.sql.functions import sum
-
-window_spec = Window.partitionBy("category").orderBy("date")
-df = df.withColumn("running_total", sum("sales").over(window_spec))
+print("Glue Job Created:", response["Name"])
