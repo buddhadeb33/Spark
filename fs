@@ -76,3 +76,56 @@ while True:
     time.sleep(30)
 
 print("Final Job Status:", status)
+
+
+
+############
+
+
+import boto3
+
+# -------------------------------
+# Step 1: Create a Glue Client
+# -------------------------------
+# Replace 'us-east-1' with your appropriate AWS region.
+glue_client = boto3.client('glue', region_name='us-east-1')
+
+# -------------------------------
+# Step 2: Define Job Parameters
+# -------------------------------
+job_name = 'my-glue-job'  # Name for your Glue job.
+script_location = 's3://your-bucket/path/to/glue_script.py'  # S3 location of your Glue script.
+iam_role = 'arn:aws:iam::123456789012:role/your-glue-job-role'  # Replace with your IAM role ARN that has Glue & S3 permissions.
+
+# Optional: Define worker configuration (for Glue version 2.0 or later).
+worker_config = {
+    'WorkerType': 'G.1X',  # Options include: 'G.1X' (standard) or 'G.2X' (more powerful)
+    'NumberOfWorkers': 2   # Adjust the number of workers based on your data processing needs.
+}
+
+# -------------------------------
+# Step 3: Create the Glue Job
+# -------------------------------
+try:
+    response = glue_client.create_job(
+        Name=job_name,
+        Role=iam_role,
+        Command={
+            'Name': 'glueetl',            # For ETL jobs, use 'glueetl'
+            'ScriptLocation': script_location,
+            'PythonVersion': '3'           # Use Python 3 for your ETL script.
+        },
+        DefaultArguments={
+            '--job-language': 'python'
+        },
+        Timeout=2880,                      # Timeout in minutes (optional, maximum is 2880 minutes).
+        GlueVersion='2.0',                 # Specify the Glue version you want to use.
+        **worker_config                   # Unpack the worker configuration parameters.
+    )
+    print(f"Glue job '{job_name}' created successfully.")
+    print("Response:", response)
+except glue_client.exceptions.AlreadyExistsException:
+    print(f"Glue job '{job_name}' already exists. You may want to update it using the update_job API.")
+except Exception as e:
+    print("Error creating Glue job:", e)
+
