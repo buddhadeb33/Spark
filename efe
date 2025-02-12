@@ -1,0 +1,10 @@
+# Access the RuntimeConfig object
+config = spark.conf
+
+# List of desired configuration keys
+desired_keys = ['spark.app.name', 'spark.master', 'spark.executor.memory']
+
+# Retrieve and print the values for the selected keys
+for key in desired_keys:
+    value = config.get(key, 'Key not found')
+    print(f"{key}: {value}")
