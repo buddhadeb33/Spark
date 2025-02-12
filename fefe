@@ -1,29 +1,41 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, avg, when
+from pyspark.sql.functions import expr, col, rand
+from pyspark.sql import DataFrame
 
-# Initialize Spark Session
-spark = SparkSession.builder \
-    .appName("BigDataETL") \
-    .config("spark.sql.shuffle.partitions", "200") \
-    .getOrCreate()
+def glue_performance_test(df: DataFrame, group_by_column: str, agg_func: str, agg_column: str, partitions: int = 500):
+    """
+    Perform expensive ETL operations to test AWS Glue performance.
 
-# Extract: Load Data from CSV
-input_path = "s3://your-bucket/input-data.csv"  # Change to your source path
-df = spark.read.option("header", "true").csv(input_path)
+    Args:
+        df (DataFrame): Input PySpark DataFrame.
+        group_by_column (str): Column to group by.
+        agg_func (str): Aggregation function ('count', 'sum', 'avg').
+        agg_column (str): Column on which to perform aggregation.
+        partitions (int): Number of partitions for repartitioning (high values slow down processing).
 
-# Transform: Data Cleaning and Aggregation
-cleaned_df = df.dropna()
+    Returns:
+        DataFrame: Transformed DataFrame.
+    """
 
-# Example transformation: Convert column to correct data type
-cleaned_df = cleaned_df.withColumn("age", col("age").cast("int"))
+    # Step 1: Repartition to a large number of partitions to force shuffling
+    df = df.repartition(partitions)
 
-# Aggregation Example: Compute average age per category
-grouped_df = cleaned_df.groupBy("category").agg(avg("age").alias("avg_age"))
+    # Step 2: Add computationally expensive transformations
+    df = df.withColumn("random_noise", rand() * col(agg_column))  # Random noise column
+    df = df.withColumn("scaled_value", expr(f"{agg_column} * 1.5 + random_noise"))  # Complex expression
 
-# Load: Save to Parquet
-output_path = "s3://your-bucket/output-data.parquet"  # Change to your destination path
-grouped_df.write.mode("overwrite").parquet(output_path)
+    # Step 3: Force a wide transformation with an expensive join (self-join)
+    df_large = df.alias("a").join(df.alias("b"), col("a." + group_by_column) == col("b." + group_by_column), "inner")
 
-# Stop Spark Session
-spark.stop()
-ee
+    # Step 4: Apply a complex filter with multiple conditions
+    df_large = df_large.filter(expr(f"a.{agg_column} > 100 AND a.{agg_column} < b.{agg_column}"))
+
+    # Step 5: Sort the dataset to force a shuffle
+    df_large = df_large.sort(col("a." + agg_column).desc())
+
+    # Step 6: Deduplicate records to increase computation time
+    df_large = df_large.distinct()
+
+    # Step 7: Perform aggregation
+    df_large = df_large.groupBy("a." + group_by_column).agg(expr(f"{agg_func}(a.{agg_column})").alias(f"{agg_func}_{agg_column}"))
+
+    return df_large
