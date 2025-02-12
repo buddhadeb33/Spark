@@ -1,0 +1,7 @@
+# Assuming you have a SparkSession instance named "spark"
+sc = spark.sparkContext
+config_list = sc.getConf().getAll()
+print("Spark configuration via SparkContext:")
+for key, value in config_list:
+    print(f"{key}: {value}")
+d
