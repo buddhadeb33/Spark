@@ -1,41 +1,15 @@
-from pyspark.sql.functions import expr, col, rand
-from pyspark.sql import DataFrame
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
 
-def glue_performance_test(df: DataFrame, group_by_column: str, agg_func: str, agg_column: str, partitions: int = 500):
-    """
-    Perform expensive ETL operations to test AWS Glue performance.
+def slow_function(val):
+    return val.lower()
 
-    Args:
-        df (DataFrame): Input PySpark DataFrame.
-        group_by_column (str): Column to group by.
-        agg_func (str): Aggregation function ('count', 'sum', 'avg').
-        agg_column (str): Column on which to perform aggregation.
-        partitions (int): Number of partitions for repartitioning (high values slow down processing).
+slow_udf = udf(slow_function, StringType())
+df = df.withColumn("new_col", slow_udf("old_col"))  # Very slow!
 
-    Returns:
-        DataFrame: Transformed DataFrame.
-    """
 
-    # Step 1: Repartition to a large number of partitions to force shuffling
-    df = df.repartition(partitions)
+from pyspark.sql.window import Window
+from pyspark.sql.functions import sum
 
-    # Step 2: Add computationally expensive transformations
-    df = df.withColumn("random_noise", rand() * col(agg_column))  # Random noise column
-    df = df.withColumn("scaled_value", expr(f"{agg_column} * 1.5 + random_noise"))  # Complex expression
-
-    # Step 3: Force a wide transformation with an expensive join (self-join)
-    df_large = df.alias("a").join(df.alias("b"), col("a." + group_by_column) == col("b." + group_by_column), "inner")
-
-    # Step 4: Apply a complex filter with multiple conditions
-    df_large = df_large.filter(expr(f"a.{agg_column} > 100 AND a.{agg_column} < b.{agg_column}"))
-
-    # Step 5: Sort the dataset to force a shuffle
-    df_large = df_large.sort(col("a." + agg_column).desc())
-
-    # Step 6: Deduplicate records to increase computation time
-    df_large = df_large.distinct()
-
-    # Step 7: Perform aggregation
-    df_large = df_large.groupBy("a." + group_by_column).agg(expr(f"{agg_func}(a.{agg_column})").alias(f"{agg_func}_{agg_column}"))
-
-    return df_large
+window_spec = Window.partitionBy("category").orderBy("date")
+df = df.withColumn("running_total", sum("sales").over(window_spec))
