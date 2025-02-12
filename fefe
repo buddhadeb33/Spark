@@ -1,24 +1,37 @@
-import boto3
+import sys
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.utils import getResolvedOptions
 
-glue_client = boto3.client("glue")
+# Get parameters passed to the script
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "INPUT_PATH", "OUTPUT_PATH"])
 
-response = glue_client.create_job(
-    Name="MyGlueJob",
-    Role="arn:aws:iam::your-account-id:role/your-glue-role",
-    Command={
-        "Name": "glueetl",
-        "ScriptLocation": "s3://your-bucket/scripts/glue_script.py",
-        "PythonVersion": "3"
-    },
-    DefaultArguments={
-        "--job-language": "python",
-        "--TempDir": "s3://your-bucket/temp/",
-        "--extra-py-files": "s3://your-bucket/libs/mylib.zip"
-    },
-    GlueVersion="3.0",
-    WorkerType="G.1X",
-    NumberOfWorkers=2,
-    MaxRetries=1
-)
+# Initialize Spark and Glue context
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
 
-print("Glue Job Created:", response["Name"])
+# Print arguments for debugging
+print(f"Job Name: {args['JOB_NAME']}")
+print(f"Input Path: {args['INPUT_PATH']}")
+print(f"Output Path: {args['OUTPUT_PATH']}")
+
+# Read data from S3 (assuming CSV format)
+df = spark.read.option("header", "true").csv(args["INPUT_PATH"])
+
+# Perform transformations (example: select specific columns)
+df_transformed = df.select("column1", "column2")
+
+# Write the transformed data back to S3
+df_transformed.write.mode("overwrite").csv(args["OUTPUT_PATH"])
+
+print(f"Processing completed. Output saved to: {args['OUTPUT_PATH']}")
+
+
+
+
+!spark-submit glue_script.py \
+  --JOB_NAME "MyGlueJob" \
+  --INPUT_PATH "s3://your-bucket/input-data/" \
+  --OUTPUT_PATH "s3://your-bucket/output-data/"
