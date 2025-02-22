@@ -1,0 +1,40 @@
+spark = SparkSession.builder \
+    .config("spark.executor.memory", "16g") \  # Increase memory per executor
+    .config("spark.driver.memory", "16g") \  # Increase driver memory
+    .config("spark.executor.cores", "4") \  # Allocate 4 cores per executor
+    .config("spark.sql.shuffle.partitions", "500") \  # Optimize shuffle performance
+    .config("spark.sql.files.maxPartitionBytes", "128MB") \  # Control partition size
+    .config("spark.sql.autoBroadcastJoinThreshold", "-1") \  # Avoid unnecessary broadcast joins
+    .config("spark.glue.workerType", "G.2X") \  # Use G.2X workers
+    .config("spark.glue.numWorkers", "10") \  # Increase workers for better parallelism
+    .getOrCreate()
+
+
+5. Use AWS Glue DynamicFrame for Performance Gains
+AWS Glue DynamicFrame is optimized for Glue and has better performance than Spark DataFrame in some cases:
+python
+Copy
+Edit
+from awsglue.context import GlueContext
+from pyspark.context import SparkContext
+
+sc = SparkContext()
+glueContext = GlueContext(sc)
+
+dynamic_df = glueContext.create_dynamic_frame.from_options(
+    connection_type="s3",
+    connection_options={"paths": ["s3://your-bucket/input/"]},
+    format="parquet"
+)
+
+# Convert to Spark DataFrame for Spark operations
+spark_df = dynamic_df.toDF()
+
+
+print(spark.sparkContext._conf.getAll())
+
+Profile Job Execution:
+python
+Copy
+Edit
+df.explain(True)  # Shows execution plan for optimizations
