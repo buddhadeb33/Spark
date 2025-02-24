@@ -1,0 +1,29 @@
+### AWS Glue Spark Configuration Tuning Table
+
+| **Worker Type** | **Number of Workers** | **Dataset Size** | **Executor Memory** | **Cores per Executor** | **Shuffle Partitions** | **Parallelism** | **Dynamic Allocation** | **Join Optimization** | **I/O Strategies** | **Data Skew Handling** |
+|---------------|----------------|--------------|------------------|------------------|------------------|----------------|------------------|-----------------|-----------------|-----------------|
+| **G.025X** | 2–6 | Small (<10GB) | 2–4 GB | 1 | 50–100 | 2x workers | Enabled (2–6) | Broadcast Joins | Parquet/Snappy | Repartition before join |
+| **G.1X** | 2–6 | Small-Medium (10–100GB) | 4–6 GB | 2 | 100–200 | 2x workers | Enabled (2–6) | Broadcast Joins | Parquet, partitioned reads | Repartition based on key |
+| **G.2X** | 2–10 | Medium (100GB–1TB) | 8–12 GB | 2–3 | 200–500 | 3x workers | Enabled (2–10) | Broadcast for small tables, Sort-Merge for large | Parquet, Optimize file size | Salting, skew-aware partitions |
+| **G.4X** | 2–16 | Large (1–10TB) | 12–16 GB | 4 | 500–2000 | 4x workers | Enabled (2–16) | Sort-Merge Join, Bucketing | Parquet/ORC, S3 partitioning | Salting + Adaptive Query Execution |
+| **G.8X** | 2–20 | Very Large (>10TB) | 16–32 GB | 4–5 | 2000+ | 5x workers | Enabled (2–20) | Sort-Merge Join with Bucketing | Parquet/ORC, S3 partitioning, Delta Lake | Salting + Custom Partitioning |
+
+---
+
+### Additional Tuning Strategies
+
+- **Executor Memory & Cores:** Ensure the memory-per-core ratio is balanced to avoid excessive garbage collection.  
+- **Shuffle Partitions:** Higher for large datasets, but should match the number of output partitions.  
+- **Parallelism:** Should be **at least 2-5x the number of workers** to keep resources fully utilized.  
+- **Dynamic Allocation:** Helps Glue scale resources automatically as needed.  
+- **Join Optimization:**  
+  - Use **broadcast joins** when one dataset is small.  
+  - Use **Sort-Merge joins** for large tables with the same partitioning strategy.  
+  - **Bucketing** can improve join performance on large datasets.  
+- **I/O Strategies:**  
+  - Prefer **Parquet/ORC** over CSV for better performance.  
+  - Optimize **S3 file sizes** (e.g., 128MB–256MB per file).  
+  - Use **S3 partitioning** to speed up queries.  
+- **Data Skew Handling:**  
+  - **Salting:** Add a random key to distribute skewed data more evenly.  
+  - **Adaptive Query Execution (AQE):** Enables dynamic partition and join optimizations in Spark 3.  
