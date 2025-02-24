@@ -43,11 +43,6 @@ def suggest_glue_parquet_config(dataset_size_gb, num_workers, worker_type="G.2X"
     default_parallelism = min(2000, total_cores * 2)
 
     # Additional Glue and Parquet-specific optimizations:
-    # - Enable vectorized Parquet reader and filter pushdown for efficient I/O.
-    # - Disable schema merging if all files share the same schema.
-    # - Enable Adaptive Query Execution to dynamically optimize shuffle partitions.
-    # - Adjust broadcast join threshold to favor broadcast joins for small tables.
-    # - Set a reasonable executor memory overhead (in MB).
     config = {
         "spark.executor.memory": f"{int(executor_memory)}g",
         "spark.driver.memory": f"{int(driver_memory)}g",
@@ -70,6 +65,12 @@ def suggest_glue_parquet_config(dataset_size_gb, num_workers, worker_type="G.2X"
 
     return config
 
-# Example Usage:
-config = suggest_glue_parquet_config(dataset_size_gb=500, num_workers=10, worker_type="G.2X")
-print(config)
+# Example Usage: Print each config line with cool symbols
+if __name__ == "__main__":
+    config = suggest_glue_parquet_config(dataset_size_gb=500, num_workers=10, worker_type="G.2X")
+    
+    print("🚀 AWS Glue Spark Configurations 🚀")
+    print("────────────────────────────────────")
+    for key, value in config.items():
+        print(f"🔥 {key}: {value}")
+    print("────────────────────────────────────")
