@@ -1,70 +1,13 @@
-🛠️ Step 1: Choose the Right AWS Glue Kernel
-For processing a huge dataset (400M rows, 200 columns) in AWS Glue via JupyterLab 4, use the Glue PySpark kernel (gluepyspark).
+s3_client = boto3.client("s3")
 
-Kernel	Use Case
-gluepyspark	Best for running AWS Glue interactive sessions (Recommended ✅)
-gluespark	Similar to gluepyspark, optimized for AWS Glue jobs
-sparkmagic pyspark	Used for connecting to remote Spark clusters (not Glue)
-sparkmagic spark	Generic Spark (not Glue-specific)
+# Extract bucket and prefix
+s3_bucket = s3_path.split("/")[2]
+s3_prefix = "/".join(s3_path.split("/")[3:])
 
-pip install aws-glue-sessions
-!glue-session start
+# Get total size of all objects under the prefix
+response = s3_client.list_objects_v2(Bucket=s3_bucket, Prefix=s3_prefix)
 
+total_size_bytes = sum(obj["Size"] for obj in response.get("Contents", []))
+total_size_mb = total_size_bytes / (1024 * 1024)
 
-from awsglue.context import GlueContext
-from pyspark.context import SparkContext
-from awsglue.dynamicframe import DynamicFrame
-from pyspark.sql import SparkSession
-import boto3
-
-# Initialize Spark and Glue Context
-sc = SparkContext()
-glueContext = GlueContext(sc)
-spark = glueContext.spark_session
-
-
-# Read partitioned data from AWS Glue Data Catalog
-dyf = glueContext.create_dynamic_frame.from_catalog(
-    database="my_database",
-    table_name="my_large_table",
-    push_down_predicate="year='2025'"
-)
-
-# Convert to Spark DataFrame
-df = dyf.toDF()
-df.printSchema()
-df.show(5)
-
-
-# Filter and select important columns
-df_filtered = df.filter(df["status"] == "active").select("id", "name", "email")
-
-# Show sample data
-df_filtered.show(10)
-
-
-dyf_output = DynamicFrame.fromDF(df_filtered, glueContext)
-
-glueContext.write_dynamic_frame.from_options(
-    frame=dyf_output,
-    connection_type="s3",
-    connection_options={"path": "s3://my-output-bucket/processed-data/"},
-    format="parquet"
-)
-
-
-push_down_predicate="year='2025' AND month='02'"
-
-
-{
-  "--enable-auto-scaling": "true",
-  "--worker-type": "G.2X",
-  "--number-of-workers": "10"
-}
-
-
-{
-  "--job-bookmark-option": "job-bookmark-enable"
-}
-
-push_down_predicate="status='active'"
+print(f"- Data Size: {total_size_mb:.2f} MB")
