@@ -247,35 +247,70 @@ Understanding and optimizing Spark UI History is key to improving Spark job perf
 
 ==========
 
-New addition
+.. _spark_ui_analysis:
 
-2. Navigating the Spark UI Components
+======================================
+Navigating the Spark UI Components
+======================================
+
 The Spark UI consists of several tabs, each providing specific information:
 
-Jobs Tab: Displays a summary of all jobs in the application, including their status, duration, and the number of stages and tasks.
+- **Jobs Tab**: Displays a summary of all jobs in the application, including their status, duration, and the number of stages and tasks.
+  - Useful for identifying overall job progress and failed jobs.
+  - Can be used to analyze job-level metrics and execution timelines.
 
-Stages Tab: Breaks down jobs into stages, showing details like the number of tasks, input and output data sizes, and shuffle information.
+- **Stages Tab**: Breaks down jobs into stages, showing details like the number of tasks, input and output data sizes, and shuffle information.
+  - Helps in identifying data skew issues by monitoring task execution times.
+  - Displays shuffle dependencies which can impact performance.
 
-Tasks Tab: Provides granular information about individual tasks within a stage, including execution time, GC time, and errors if any.
+- **Tasks Tab**: Provides granular information about individual tasks within a stage, including execution time, GC time, and errors if any.
+  - Identifies slow tasks that may be causing performance bottlenecks.
+  - Useful for debugging task failures and excessive memory usage.
 
-Storage Tab: Shows RDDs that are cached, their storage levels, and memory usage.
+- **Storage Tab**: Shows RDDs that are cached, their storage levels, and memory usage.
+  - Helps in understanding whether caching is efficient.
+  - Allows you to track memory consumption of persisted RDDs or DataFrames.
 
-Environment Tab: Lists Spark properties, environment variables, classpath entries, and system properties.
+- **Environment Tab**: Lists Spark properties, environment variables, classpath entries, and system properties.
+  - Useful for checking application-specific configurations.
+  - Helps in debugging configuration mismatches or tuning parameters.
 
-Executors Tab: Provides metrics for each executor, such as memory and disk usage, task and shuffle read/write metrics, and garbage collection statistics.
+- **Executors Tab**: Provides metrics for each executor, such as memory and disk usage, task and shuffle read/write metrics, and garbage collection statistics.
+  - Helps in monitoring executor memory usage and garbage collection (GC) impact.
+  - Tracks CPU utilization and whether all allocated cores are being used effectively.
+  - Identifies executors running out of memory or performing excessive disk spills.
 
-SQL Tab: Displays details about executed SQL queries, including their execution plans and metrics.
+- **SQL Tab**: Displays details about executed SQL queries, including their execution plans and metrics.
+  - Useful for monitoring query execution performance and identifying slow queries.
+  - Allows you to analyze execution plans to optimize query performance.
 
-3. Identifying Performance Bottlenecks and Errors
-Long-Running Stages or Tasks: In the Stages and Tasks tabs, sort by duration to identify stages or tasks that are taking longer than expected. Long durations may indicate issues like data skew or inefficient operations.
+======================================
+Monitoring Memory, Core Usage, and Performance
+======================================
 
-Shuffle Read/Write Size: High shuffle read/write sizes in the Stages tab can indicate expensive operations like wide transformations (e.g., joins, aggregations). Optimizing these operations or adjusting the number of partitions can help reduce shuffle costs.
+- **Monitoring Executor Memory Usage:**
+  - Check the **Executors** tab to track used vs available memory.
+  - Identify memory-intensive operations and adjust `spark.executor.memory` accordingly.
+  - Monitor **GC time** to determine if frequent garbage collection is slowing down tasks.
 
-Executor Utilization: The Executors tab provides insights into executor performance. Executors with high task failure rates or excessive garbage collection times may need more memory or require code optimization to handle data more efficiently.
+- **Monitoring CPU/Core Utilization:**
+  - Use the **Executors** tab to track core usage across executors.
+  - Ensure that allocated cores (`spark.executor.cores`) are efficiently utilized.
+  - If CPU usage is low, consider increasing parallelism (`spark.default.parallelism`).
 
-Failed Tasks: The Tasks tab highlights any failed tasks. Reviewing the error messages can help diagnose issues such as memory shortages or data inconsistencies.
+- **Tracking Disk Spills and Shuffle Performance:**
+  - Check **Shuffle Read/Write Size** in the **Stages** tab to identify excessive shuffle operations.
+  - High **spill to disk** indicates memory shortage—consider increasing `spark.memory.fraction`.
+  - Optimize partition sizes by tuning `spark.sql.shuffle.partitions`.
 
-SQL Query Performance: In the SQL tab, examine the execution plans of slow queries. Identifying operations like expensive joins or scans can guide optimizations, such as adding appropriate indexes or restructuring queries.
+======================================
+Identifying Performance Bottlenecks and Errors
+======================================
 
-4. O
+- **Long-Running Stages or Tasks**: In the Stages and Tasks tabs, sort by duration to identify stages or tasks that are taking longer than expected. Long durations may indicate issues like data skew or inefficient operations.
+- **Shuffle Read/Write Size**: High shuffle read/write sizes in the Stages tab can indicate expensive operations like wide transformations (e.g., joins, aggregations). Optimizing these operations or adjusting the number of partitions can help reduce shuffle costs.
+- **Executor Utilization**: The Executors tab provides insights into executor performance. Executors with high task failure rates or excessive garbage collection times may need more memory or require code optimization to handle data more efficiently.
+- **Failed Tasks**: The Tasks tab highlights any failed tasks. Reviewing the error messages can help diagnose issues such as memory shortages or data inconsistencies.
+- **SQL Query Performance**: In the SQL tab, examine the execution plans of slow queries. Identifying operations like expensive joins or scans can guide optimizations, such as adding appropriate indexes or restructuring queries.
 
+By effectively using the Spark UI, you can diagnose inefficiencies, monitor resource utilization, and optimize performance to achieve better execution efficiency.
