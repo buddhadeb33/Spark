@@ -17,9 +17,65 @@ Table of Contents
 
 Introduction to Spark UI
 ========================
+.. _table_of_contents:
+
+===============================
+Table of Contents
+===============================
+
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: top
+
+Introduction to Spark UI
+========================
+
+What is Spark UI?
+-----------------
+Spark UI is the web-based user interface provided by Apache Spark to monitor and understand the execution of Spark applications. It gives insights into job execution, stages, tasks, storage, environment settings, and resource utilization.
+
+Why is Spark UI Important?
+--------------------------
+- Helps in debugging and troubleshooting Spark applications.
+- Provides performance metrics to optimize job execution.
+- Visualizes DAG (Directed Acyclic Graph) for better understanding of task dependencies.
+- Monitors executor performance and resource allocation.
+
+When to Use Spark UI?
+---------------------
+- During development to debug and optimize Spark jobs.
+- While running production workloads to monitor job health and resource usage.
+- For analyzing job failures and debugging slow performance issues.
+- To track memory, CPU, and shuffle performance for optimization.
+
+Pre-requisites for Understanding Spark UI
+-----------------------------------------
+- Basic knowledge of Apache Spark and its architecture.
+- Familiarity with concepts like RDDs, DataFrames, and DAG.
+- Understanding of cluster resource management (YARN, Kubernetes, Standalone mode).
+- Ability to interpret performance metrics like execution time, shuffle read/write, and task distribution.
 
 How to Access Spark UI?
 ========================
+Common Issues and Fixes while Accessing Spark UI
+------------------------------------------------
+
+**1. Spark UI Not Loading in AWS Glue**  
+   - Ensure `--enable-spark-ui true` is set in job parameters.
+   - Logs might take time to appear; check S3 and CloudWatch for delays.
+
+**2. No Logs in S3 for Spark History Server**  
+   - Verify the `--spark-event-logs-path` is correctly configured.
+   - Ensure the IAM role has permissions to write to the specified S3 bucket.
+
+**3. Unable to Start Local Spark History Server**  
+   - Make sure Spark is installed locally and configured correctly.
+   - Check if the logs are correctly downloaded from S3.
+
+**4. CloudWatch Logs Not Showing Spark UI Data**  
+   - Use `aws logs describe-log-groups` to check if logs exist.
+   - Try using **CloudWatch Insights** with specific queries to filter Spark events.
 
 Overview of Spark UI Components
 ================================
