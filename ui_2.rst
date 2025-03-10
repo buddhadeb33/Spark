@@ -1046,9 +1046,6 @@ Frequent **executor failures** can lead to job crashes and **Spark UI showing mi
 
 
 
-
-Case Studies and Practical Examples
-===================================
 Case Studies: Optimizing Spark Performance in AWS Glue & SageMaker
 ==================================================================
 
