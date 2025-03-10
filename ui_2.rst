@@ -4,66 +4,67 @@
 Understanding Spark UI – A Complete Guide
 -----------------------------------------------------------------
 
-# Table of Contents: 
+.. _table_of_contents:
 
-## **1. Introduction to Spark UI**  
+===============================
+Table of Contents
+===============================
 
-## **2. How to Access Spark UI?**  
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: top
 
+Introduction to Spark UI
+========================
 
+How to Access Spark UI?
+========================
 
-## **3. Overview of Spark UI Components**  
+Overview of Spark UI Components
+================================
 
+Spark UI: The Jobs Page
+========================
 
-## **4. Spark UI: The **Jobs** Page**  
+Spark UI: The Stages Page
+=========================
 
- 
+Spark UI: The Tasks Page
+========================
 
-## **5. Spark UI: The **Stages** Page**  
- 
+Spark UI: The Storage Page
+==========================
 
+Spark UI: The Environment Page
+==============================
 
-## **6. Spark UI: The **Tasks** Page**  
+Spark UI: The Executors Page
+============================
 
+Spark UI: The SQL Page (For Spark SQL Users)
+============================================
 
+Advanced Spark UI Features
+===========================
 
-## **7. Spark UI: The **Storage** Page**  
+How to Enable and Use Spark History Server?
+===========================================
 
- 
+Debugging and Performance Tuning Using Spark UI
+===============================================
 
-## **8. Spark UI: The **Environment** Page**  
+Common Errors in Spark UI and How to Fix Them
+==============================================
 
+Automating Performance Monitoring Using Spark UI Logs
+======================================================
 
+Conclusion and Best Practices
+==============================
 
-## **9. Spark UI: The **Executors** Page**  
-
-  
-
-## **10. Spark UI: The **SQL** Page (For Spark SQL Users)**  
-
-
-
-## **11. Advanced Spark UI Features**  
-
-
-
-## **12. How to Enable and Use Spark History Server?**  
-
- 
-
-## **13. Debugging and Performance Tuning Using Spark UI**  
-
- 
-
-## **14. Common Errors in Spark UI and How to Fix Them**  
-
-
-
-## **15. Automating Performance Monitoring Using Spark UI Logs**  
-
-
-
-## **16. Conclusion and Best Practices**  
+Case Studies and Practical Examples
+===================================
 
 
 
@@ -171,3 +172,29 @@ Understanding Spark UI – A Complete Guide
    - Key Takeaways from Spark UI  
    - When to Use Spark UI vs. Other Monitoring Tools?  
    - Final Tips for Efficient Spark Debugging  
+
+
+17. Case Studies and Practical Examples
+
+Case 1: Reducing Job Execution Time from 30 mins to 10 mins
+Scenario: A Spark job was taking 30 minutes due to excessive shuffling.
+
+Solution:
+
+Increased shuffle partitions (spark.sql.shuffle.partitions = 300).
+Used broadcast joins.
+Optimized executor memory allocation.
+Result: Job execution time reduced to 10 minutes.
+
+Case 2: Fixing OOM Errors in a Large Dataset Processing Job
+Scenario: Job failed with OOM errors while processing a large dataset.
+
+Solution:
+
+Increased executor-memory and executor-cores.
+Used coalesce() to manage partitions.
+Enabled Garbage Collection (GC) tuning.
+Increased shuffle memory fraction.
+Result: Job ran successfully without OOM errors.
+
+
