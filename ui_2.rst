@@ -139,7 +139,7 @@ For example:
 - Calling ``df.show()`` on a DataFrame triggers a job.
 - Running ``rdd.saveAsTextFile("output")`` initiates a job.
 
-Each job is executed as a Directed Acyclic Graph (**DAG**) of stages, where dependencies between different computations are managed automatically by Spark.
+Each job is executed as a Directed Acyclic Graph (**DAG**) of stages, where Spark manages dependencies between different computations automatically.
 
 Job Execution Stages and DAG Visualization
 ------------------------------------------
@@ -198,6 +198,74 @@ Common Issues in the Jobs Page
 
 Spark UI: The Stages Page
 =========================
+
+The **Stages Page** in Spark UI provides a detailed view of how Spark jobs are broken down into **stages** and how tasks are executed within those stages. Understanding this page is crucial for debugging performance bottlenecks and optimizing execution plans.
+
+What are Stages in Spark?
+-------------------------
+
+In Spark, a **stage** is a sequence of computations that can be executed together without requiring data shuffling. Spark divides a job into multiple **stages** based on **shuffle boundaries**.
+
+- **Narrow Transformation**: Operations like ``map()``, ``filter()``, and ``flatMap()`` do not require data shuffling, so they stay within a single stage.
+- **Wide Transformation**: Operations like ``groupBy()``, ``reduceByKey()``, and ``join()`` require data shuffling, creating a **new stage**.
+
+For example:
+- ``df.filter(...).select(...)`` → Stays in one stage (no shuffle).
+- ``df.groupBy(...).agg(...)`` → Creates a new stage (shuffle required).
+
+Understanding Stage Breakdown and DAG
+-------------------------------------
+
+The **Directed Acyclic Graph (DAG) visualization** in the Stages Page represents:
+- **How stages are linked** (dependencies).
+- **How data moves between stages** (shuffle operations).
+- **The number of tasks executed per stage**.
+
+Each stage consists of multiple **tasks**, and Spark UI allows users to analyze:
+- Execution time of each stage.
+- Task failures or stragglers.
+- Shuffle dependencies and data flow.
+
+Shuffle Read and Write Metrics
+------------------------------
+
+The **Stages Page** provides **Shuffle Read and Write Metrics**, which help in understanding **data movement across nodes**.
+
+1. **Shuffle Read Metrics**:
+   - Total data read from remote nodes.
+   - Number of records read.
+   - Time taken to fetch data.
+
+2. **Shuffle Write Metrics**:
+   - Total data written before shuffling.
+   - Number of records written.
+   - Write time and disk usage.
+
+High shuffle read/write sizes indicate inefficient data distribution, which can lead to **performance issues**. 
+
+Task Execution within a Stage
+-----------------------------
+
+Each stage consists of **multiple tasks**, which are executed in parallel across worker nodes. The **Stages Page** provides insights into:
+- **Task execution time** (average, min, max).
+- **GC time** (impact of garbage collection).
+- **Input/output data sizes per task**.
+- **Task failures and retries**.
+
+### Common Issues:
+1. **Skewed Tasks (Long Running Tasks in a Stage)**  
+   - Cause: Uneven data distribution.  
+   - Fix: Use ``salting`` or ``repartition()`` to balance data.  
+
+2. **High Shuffle Read/Write Time**  
+   - Cause: Unnecessary shuffling due to joins/groupBy.  
+   - Fix: Use broadcast joins (``broadcast()``) and reduce unnecessary wide transformations.  
+
+3. **Task Failures**  
+   - Cause: OOM errors, disk space issues, or executor failures.  
+   - Fix: Increase executor memory, optimize partitions, and check logs for root causes.  
+
+
 
 Spark UI: The Tasks Page
 ========================
