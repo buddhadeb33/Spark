@@ -128,6 +128,74 @@ Key Components of Spark UI
 Spark UI: The Jobs Page
 ========================
 
+The Jobs Page in Spark UI provides an overview of all the Spark jobs executed within an application. It helps users monitor job execution, track dependencies, and debug performance issues. This section explains what a job is in Spark, how execution stages are visualized using DAGs, different job statuses, and common issues encountered.
+
+What is a Job in Spark?
+-----------------------
+
+In Apache Spark, a **job** is a unit of execution triggered by an **action** such as ``collect()``, ``show()``, ``save()``, or ``count()``. A job consists of multiple **stages**, which further contain **tasks** that run on different executors.
+
+For example:
+- Calling ``df.show()`` on a DataFrame triggers a job.
+- Running ``rdd.saveAsTextFile("output")`` initiates a job.
+
+Each job is executed as a Directed Acyclic Graph (**DAG**) of stages, where dependencies between different computations are managed automatically by Spark.
+
+Job Execution Stages and DAG Visualization
+------------------------------------------
+
+The Jobs Page in Spark UI provides a **DAG visualization**, which represents:
+- **Stages**: Subdivisions of the job based on shuffle boundaries.
+- **Tasks**: Units of execution assigned to worker nodes.
+- **Dependencies**: The flow of transformations and actions.
+
+The DAG helps in:
+- Understanding execution flow.
+- Identifying performance bottlenecks.
+- Optimizing job execution by reducing unnecessary shuffles.
+
+Users can click on individual jobs to expand their DAGs and analyze the **breakdown of execution stages**.
+
+Job Status (Succeeded, Failed, Running, Pending)
+------------------------------------------------
+
+Each job in Spark UI is marked with a status indicating its current state:
+
+- **Succeeded**: The job has completed execution without errors.
+- **Failed**: The job encountered an error during execution (e.g., memory issues, incorrect data format).
+- **Running**: The job is actively executing.
+- **Pending**: The job is waiting for resources (e.g., insufficient executors, cluster overload).
+
+Spark UI displays these statuses along with execution time, making it easier to diagnose performance issues.
+
+Common Issues in the Jobs Page
+------------------------------
+
+1. **Jobs Stuck in Pending State**
+   - Possible Reasons:
+     - Not enough resources available.
+     - Too many concurrent jobs running.
+     - Cluster configuration issues.
+   - Solution:
+     - Increase available executors and memory.
+     - Reduce job parallelism.
+
+2. **Jobs Running Slowly**
+   - Possible Reasons:
+     - Data skew leading to uneven task distribution.
+     - Inefficient transformations causing unnecessary shuffles.
+   - Solution:
+     - Use **repartition()** to balance data distribution.
+     - Optimize joins and reduce shuffle operations.
+
+3. **Jobs Failing**
+   - Possible Reasons:
+     - Out of memory (OOM) errors.
+     - Incorrect data types or schema mismatches.
+   - Solution:
+     - Increase executor memory using ``spark.executor.memory``.
+     - Validate input data before processing.
+
 Spark UI: The Stages Page
 =========================
 
@@ -297,5 +365,10 @@ Used coalesce() to manage partitions.
 Enabled Garbage Collection (GC) tuning.
 Increased shuffle memory fraction.
 Result: Job ran successfully without OOM errors.
+
+
+Reference :
+https://spark.apache.org/docs/3.5.3/web-ui.html
+
 
 
