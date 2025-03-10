@@ -17,19 +17,6 @@ Table of Contents
 
 Introduction to Spark UI
 ========================
-.. _table_of_contents:
-
-===============================
-Table of Contents
-===============================
-
-.. contents::
-   :depth: 2
-   :local:
-   :backlinks: top
-
-Introduction to Spark UI
-========================
 
 What is Spark UI?
 -----------------
@@ -269,6 +256,83 @@ Each stage consists of **multiple tasks**, which are executed in parallel across
 
 Spark UI: The Tasks Page
 ========================
+
+The **Tasks Page** in Spark UI provides detailed insights into individual task execution within each stage. Understanding how tasks are distributed and executed helps in debugging performance bottlenecks, optimizing resource allocation, and improving overall Spark job efficiency.
+
+What are Tasks in Spark?
+------------------------
+
+A **task** in Spark is the smallest unit of execution. Each **stage** in Spark consists of multiple tasks that run in parallel across **executors**.  
+Tasks are created based on the number of data partitions, meaning:
+- If an RDD or DataFrame has **100 partitions**, Spark will create **100 tasks**.
+- Each task processes **one partition of data** at a time.
+
+Tasks are executed inside **executors**, where they perform computations, read/write data, and apply transformations.
+
+Understanding Task Distribution across Executors
+-----------------------------------------------
+
+The **Tasks Page** provides an overview of how tasks are distributed across executors, including:
+- **Number of tasks assigned to each executor**.
+- **Completion status** (Success, Failed, Running).
+- **Average execution time per executor**.
+- **Resource utilization per task** (CPU, Memory, Disk I/O).
+
+### **Factors Affecting Task Distribution:**
+1. **Number of Partitions:** More partitions mean more tasks but smaller data per task.  
+2. **Executor Count:** More executors allow better parallelism but require balanced task distribution.  
+3. **Skewed Data:** Uneven data partitions can lead to some tasks running longer than others.  
+
+Task Metrics (Execution Time, GC Time, Input Size, Output Size)
+---------------------------------------------------------------
+
+The **Tasks Page** in Spark UI provides important metrics for analyzing task performance:
+
+- **Execution Time:**  
+  - The time taken by each task to complete.  
+  - Large variation in execution times indicates **data skew**.  
+
+- **Garbage Collection (GC) Time:**  
+  - High GC time means frequent memory cleanups, affecting performance.  
+  - Tune **executor memory settings** to optimize garbage collection.  
+
+- **Input Size & Output Size:**  
+  - Shows the amount of data read/written by each task.  
+  - Large input/output sizes indicate **inefficient transformations or excessive shuffling**.  
+
+- **Shuffle Read & Write Metrics:**  
+  - High shuffle read/write values suggest inefficient data distribution.  
+  - Consider using **broadcast joins** or **optimizing partition sizes**.  
+
+Troubleshooting Slow Tasks
+--------------------------
+
+Slow-running tasks can degrade overall job performance. Common causes and solutions include:
+
+### **1. Data Skew (Some tasks taking significantly longer)**
+   - **Cause:** Uneven data distribution across partitions.
+   - **Fix:**  
+     - Use ``salting`` for better data distribution.  
+     - Apply **repartition()** or **coalesce()** to balance partitions.  
+     - Use **broadcast joins** for small tables to avoid shuffle overhead.  
+
+### **2. High GC (Garbage Collection) Time**
+   - **Cause:** Inefficient memory allocation, large objects in memory.  
+   - **Fix:**  
+     - Increase executor memory (``spark.executor.memory``).  
+     - Tune **GC settings** (e.g., use G1GC or ZGC for better performance).  
+
+### **3. Too Many Tasks on a Single Executor**
+   - **Cause:** Large number of tasks assigned to a few executors.  
+   - **Fix:**  
+     - Increase executor count.  
+     - Adjust partitioning strategy (e.g., ``df.repartition(n)``).  
+
+### **4. High Shuffle Read/Write Time**
+   - **Cause:** Too much data movement across executors due to joins and aggregations.  
+   - **Fix:**  
+     - Use **broadcast joins** (``broadcast(df)``).  
+     - Optimize partitioning for wide transformations (e.g., ``reduceByKey()`` instead of ``groupByKey()``).  
 
 Spark UI: The Storage Page
 ==========================
