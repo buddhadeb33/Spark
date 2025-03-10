@@ -38,7 +38,7 @@ Pre-requisites for Understanding Spark UI
 -----------------------------------------
 - Basic knowledge of Apache Spark and its architecture.
 - Familiarity with concepts like RDDs, DataFrames, and DAG.
-- Understanding of cluster resource management (YARN, Kubernetes, Standalone mode).
+- Understanding of cluster resource management.
 - Ability to interpret performance metrics like execution time, shuffle read/write, and task distribution.
 
 How to Access Spark UI?
@@ -276,8 +276,11 @@ The **Tasks Page** provides an overview of how tasks are distributed across exec
 - **Resource utilization per task** (CPU, Memory, Disk I/O).
 
 ### **Factors Affecting Task Distribution:**
-1. **Number of Partitions:** More partitions mean more tasks but smaller data per task.  
-2. **Executor Count:** More executors allow better parallelism but require balanced task distribution.  
+
+1. **Number of Partitions:** More partitions mean more tasks but smaller data per task.
+
+2. **Executor Count:** More executors allow better parallelism but require balanced task distribution. 
+
 3. **Skewed Data:** Uneven data partitions can lead to some tasks running longer than others.  
 
 Task Metrics (Execution Time, GC Time, Input Size, Output Size)
