@@ -58,6 +58,11 @@ Pre-requisites for Understanding Spark UI
 
 How to Access Spark UI?
 ========================
+
+
+Accessing Spark UI in AWS Glue
+------------------------------
+
 Common Issues and Fixes while Accessing Spark UI
 ------------------------------------------------
 
@@ -79,6 +84,46 @@ Common Issues and Fixes while Accessing Spark UI
 
 Overview of Spark UI Components
 ================================
+Spark UI provides a comprehensive interface for monitoring, debugging, and optimizing Apache Spark applications. It offers multiple pages that display information about job execution, stages, tasks, storage, environment settings, executors, and SQL queries. This section provides an overview of the key components of Spark UI.
+
+Key Components of Spark UI
+--------------------------
+
+1. **Jobs Page**
+   - Displays all submitted jobs with their status (Succeeded, Running, Failed).
+   - Provides a DAG (Directed Acyclic Graph) visualization of job execution.
+   - Helps in identifying bottlenecks and failures in job execution.
+
+2. **Stages Page**
+   - Shows the breakdown of jobs into smaller execution stages.
+   - Displays task distribution, shuffle operations, and DAG representation.
+   - Includes metrics such as input size, output size, and execution time.
+
+3. **Tasks Page**
+   - Lists all tasks executed within each stage.
+   - Provides details on execution time, GC time, input/output sizes, and errors.
+   - Helps in identifying stragglers (slow-running tasks).
+
+4. **Storage Page**
+   - Displays cached RDDs and DataFrames.
+   - Shows memory usage and storage levels (Disk, Memory, Both).
+   - Helps in understanding memory efficiency and tuning cache persistence.
+
+5. **Environment Page**
+   - Lists Spark configuration settings.
+   - Displays JVM properties, system properties, and classpath information.
+   - Useful for debugging configuration-related issues.
+
+6. **Executors Page**
+   - Shows all active and dead executors.
+   - Provides information on memory usage, disk usage, and task execution.
+   - Helps in identifying executor failures and performance bottlenecks.
+
+7. **SQL Page (For Spark SQL Users)**
+   - Displays execution plans for SQL queries.
+   - Provides insights into physical and logical query plans.
+   - Helps in optimizing query execution and debugging performance issues.
+
 
 Spark UI: The Jobs Page
 ========================
