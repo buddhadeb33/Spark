@@ -336,6 +336,76 @@ Slow-running tasks can degrade overall job performance. Common causes and soluti
 
 Spark UI: The Storage Page
 ==========================
+The **Storage Page** in Spark UI provides insights into **cached RDDs (Resilient Distributed Datasets) and DataFrames**, showing their memory usage, storage levels, and persistence strategies. Understanding this page helps users optimize memory usage and improve Spark job performance.
+
+Understanding RDD Storage
+-------------------------
+
+In Spark, **RDDs and DataFrames** can be **cached** in memory to **avoid recomputation** and speed up iterative or repeated operations.
+
+### **How Spark Stores RDDs?**
+- **Memory-only Storage**: Stores RDDs entirely in memory. If there is insufficient memory, some partitions may be recomputed.
+- **Disk-based Storage**: Stores RDDs on disk if memory is insufficient.
+- **Hybrid Storage**: Uses both memory and disk based on storage level settings.
+
+Spark provides different **storage levels**:
+- ``MEMORY_ONLY``: Stores RDDs in memory only; recomputes partitions if memory runs out.
+- ``MEMORY_AND_DISK``: Stores RDDs in memory, but spills to disk if needed.
+- ``DISK_ONLY``: Stores RDDs only on disk, avoiding memory usage.
+- ``MEMORY_ONLY_SER``: Stores RDDs in a serialized format, reducing memory usage.
+
+Cached Data Visualization
+-------------------------
+
+The **Storage Page** in Spark UI displays:
+- **List of cached RDDs and DataFrames**.
+- **Storage levels (Memory, Disk, Serialized)**.
+- **Number of partitions cached**.
+- **Size of cached data in memory and disk**.
+- **Fraction of data persisted in memory**.
+
+Users can check which datasets are cached and whether they are **spilling to disk**, indicating insufficient memory.
+
+Memory Usage and Persistence in Spark
+-------------------------------------
+
+### **Key Storage Metrics in Spark UI**
+- **Size in Memory**: Amount of data stored in RAM.
+- **Size on Disk**: Data spilled to disk when memory is insufficient.
+- **Number of Cached Partitions**: How many partitions are stored in memory.
+
+### **Persistence Mechanism**
+Spark allows controlling persistence using ``persist(StorageLevel)`` or ``cache()``:
+- ``df.cache()`` → Uses ``MEMORY_AND_DISK`` by default.
+- ``df.persist(StorageLevel.MEMORY_ONLY)`` → Stores only in memory.
+- ``df.unpersist()`` → Removes cached data to free memory.
+
+How to Optimize RDD Storage?
+----------------------------
+
+To make efficient use of memory, consider the following optimization techniques:
+
+### **1. Choose the Right Storage Level**
+   - If memory is limited, use ``MEMORY_AND_DISK`` to prevent recomputation.
+   - If the dataset is large but not frequently used, use ``DISK_ONLY`` to avoid memory overhead.
+   - If memory is sufficient, use ``MEMORY_ONLY`` for the fastest performance.
+
+### **2. Use DataFrame API Instead of RDDs**
+   - DataFrames use **Tungsten Optimizations**, reducing memory overhead.
+   - Spark SQL **caches DataFrames more efficiently** than RDDs.
+
+### **3. Avoid Unnecessary Caching**
+   - Cache only **datasets used multiple times**.
+   - Unpersist unused RDDs/DataFrames to **free up memory**.
+
+### **4. Monitor Memory Usage in Spark UI**
+   - If **storage levels show disk spill**, increase executor memory.
+   - If **cached partitions are frequently evicted**, reduce cache size or optimize partitioning.
+
+### **5. Optimize Partitioning Strategy**
+   - Use **coalesce()** to reduce unnecessary partitions and save memory.
+   - Use **repartition()** for evenly distributed partitions across executors.
+
 
 Spark UI: The Environment Page
 ==============================
