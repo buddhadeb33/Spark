@@ -881,145 +881,398 @@ AWS Glue jobs run on **distributed clusters**, so proper resource allocation is 
 Common Errors in Spark UI and How to Fix Them
 ==============================================
 
-Automating Performance Monitoring Using Spark UI Logs
-======================================================
+Spark UI helps in debugging Spark applications, but users often encounter **UI loading issues, job execution delays, high garbage collection (GC) times, and executor failures**. Below are common errors and their solutions in **AWS Glue**.
 
-Conclusion and Best Practices
-==============================
+UI Not Loading in Cluster Mode
+------------------------------
+
+When running Spark on AWS Glue, the **Spark UI may not load in cluster mode** due to missing configurations or incorrect network settings.
+
+- **Symptoms:**
+  - Cannot access **Spark UI via the AWS Glue console**.
+  - UI loads but shows **"Application Not Found"**.
+
+- **Possible Causes:**
+  - Spark UI is disabled in **AWS Glue interactive sessions**.
+  - Missing Spark event logs configuration.
+  - **IAM role lacks S3 read permissions** for event logs.
+
+- **Solution:**
+  1. **Ensure Spark Event Logging is Enabled**:
+
+     .. code-block:: python
+
+         spark.conf.set("spark.eventLog.enabled", "true")
+         spark.conf.set("spark.eventLog.dir", "s3://my-spark-logs/")
+
+  2. **Verify IAM Role Permissions** for accessing event logs:
+
+     .. code-block:: json
+
+         {
+           "Effect": "Allow",
+           "Action": [
+             "s3:GetObject",
+             "s3:ListBucket"
+           ],
+           "Resource": [
+             "arn:aws:s3:::my-spark-logs",
+             "arn:aws:s3:::my-spark-logs/*"
+           ]
+         }
+
+  3. **Check Network Connectivity**:
+     - Ensure **AWS Glue security groups** allow inbound connections.
+     - If running on **AWS EMR**, use an **SSH tunnel** to access the UI.
+
+Jobs Stuck in Pending State
+---------------------------
+
+Spark jobs in AWS Glue can sometimes **get stuck in the "Pending" state**, preventing execution.
+
+- **Symptoms:**
+  - Job does not progress beyond the "Pending" stage.
+  - No tasks are being scheduled.
+
+- **Possible Causes:**
+  - **Lack of available compute resources** in the AWS region.
+  - **AWS Glue worker limits exceeded**.
+  - Incorrect **dynamic allocation settings**.
+
+- **Solution:**
+  1. **Check AWS Glue Capacity**:
+     - Ensure there are **enough DPUs (Data Processing Units)** available.
+     - Use `AWS Glue Studio > Monitoring` to check resource usage.
+
+  2. **Increase Worker Allocation**:
+
+     .. code-block:: python
+
+         spark.conf.set("spark.executor.instances", 10)
+
+  3. **Disable Dynamic Allocation (If Needed)**:
+
+     .. code-block:: python
+
+         spark.conf.set("spark.dynamicAllocation.enabled", "false")
+
+  4. **Use Reserved Capacity for Critical Jobs**:
+     - **On-demand jobs** may wait for compute resources.
+     - Use **AWS Glue worker types** like **G.1X, G.2X** for better performance.
+
+High GC Time Affecting Task Performance
+---------------------------------------
+
+High **Garbage Collection (GC) time** can slow down Spark jobs in AWS Glue, leading to **long-running tasks**.
+
+- **Symptoms:**
+  - Tasks take too long to complete.
+  - Spark UI shows **high GC time in the Executors page**.
+  - Frequent **OutOfMemory (OOM) errors**.
+
+- **Possible Causes:**
+  - Large datasets **not partitioned efficiently**.
+  - **Excessive caching** of data.
+  - Default **JVM memory settings** causing GC overhead.
+
+- **Solution:**
+  1. **Reduce Memory Pressure**:
+     - Increase **memory fraction for execution**:
+
+       .. code-block:: python
+
+           spark.conf.set("spark.memory.fraction", 0.6)
+
+  2. **Avoid Unnecessary Caching**:
+     - Only cache **reused DataFrames**:
+
+       .. code-block:: python
+
+           df.persist(StorageLevel.MEMORY_AND_DISK)
+
+  3. **Monitor Garbage Collection Logs**:
+     - Enable detailed logging:
+
+       .. code-block:: python
+
+           spark.conf.set("spark.executor.extraJavaOptions", "-XX:+PrintGCDetails -XX:+PrintGCTimeStamps")
+
+  4. **Optimize Data Partitions**:
+     - Reduce shuffle operations **by increasing partitions**:
+
+       .. code-block:: python
+
+           df = df.repartition(200)
+
+Executors Dying Frequently
+--------------------------
+
+Frequent **executor failures** can lead to job crashes and **Spark UI showing missing executors**.
+
+- **Symptoms:**
+  - Executors disappear in **Spark UI Executors page**.
+  - Job fails with **"ExecutorLostFailure"**.
+  - Spark UI logs show **"Container killed by YARN for exceeding memory limits"** (not relevant for AWS Glue, but similar errors exist).
+
+- **Possible Causes:**
+  - **Insufficient memory allocation** per executor.
+  - **High data skew** causing certain executors to handle more load.
+  - **Long-running GC cycles**.
+
+- **Solution:**
+  1. **Increase Executor Memory**:
+
+     .. code-block:: python
+
+         spark.conf.set("spark.executor.memory", "6g")
+
+  2. **Monitor Data Skew in Spark UI**:
+     - Open **Stages Page** → Identify long-running tasks.
+     - Use **salting techniques** for skewed keys.
+
+  3. **Enable Dynamic Resource Allocation**:
+     - Let Spark **adjust resources automatically**:
+
+       .. code-block:: python
+
+           spark.conf.set("spark.dynamicAllocation.enabled", "true")
+
+  4. **Reduce Shuffle Overhead**:
+     - Optimize shuffle partitions:
+
+       .. code-block:: python
+
+           spark.conf.set("spark.sql.shuffle.partitions", 200)
+
+
+
 
 Case Studies and Practical Examples
 ===================================
+Case Studies: Optimizing Spark Performance in AWS Glue & SageMaker
+==================================================================
 
+When working with **large-scale data processing in AWS Glue and SageMaker**, performance bottlenecks are inevitable. However, **Spark UI** provides critical insights that help diagnose and resolve these issues.  
 
+In this section, we explore **real-world optimization scenarios**, using **Spark UI metrics to fine-tune performance**. Each case study walks you through the problem, the analysis, and the exact solutions that led to significant improvements.  
 
-## **1. Introduction to Spark UI**  
-   - What is Spark UI?  
-   - Why is Spark UI Important?  
-   - When to Use Spark UI?  
-   - Pre-requisites for Understanding Spark UI 
+---
 
+Case Study 1: Reducing Job Execution Time from 30 Minutes to 10 Minutes
+----------------------------------------------------------------------
 
-## **2. How to Access Spark UI?**  
-   - Accessing Spark UI in Local Mode  
-   - Accessing Spark UI in Cluster Mode (YARN, Kubernetes, Standalone, Mesos)  
-   - Accessing Spark UI in AWS Glue (if relevant)  
-   - Common Issues and Fixes while Accessing Spark UI  
+**Challenge:**  
+A Spark job in AWS Glue was **taking 30 minutes to execute** due to excessive **shuffle operations** and inefficient **join strategies**.  
 
+**How Spark UI Helped:**  
+- The **Stages Page** revealed **high shuffle spill to disk**.  
+- The **Jobs Page** showed that **certain stages were running significantly longer than others**.  
 
-## **3. Overview of Spark UI Components**  
-   - Understanding Spark UI Layout  
-   - Different Sections of Spark UI  
+**Optimizations Applied:**
+1. **Increased shuffle partitions** to better distribute the shuffle workload:
 
+   .. code-block:: python
 
+       spark.conf.set("spark.sql.shuffle.partitions", "300")
 
-## **4. Spark UI: The **Jobs** Page**  
-   - What is a Job in Spark?  
-   - Job Execution Stages and DAG Visualization  
-   - Job Status (Succeeded, Failed, Running, Pending)  
-   - Common Issues in the Jobs Page  
+2. **Used Broadcast Joins** to minimize large data movement:
 
+   .. code-block:: python
 
+       from pyspark.sql.functions import broadcast
+       df_result = df_large.join(broadcast(df_small), "key")
 
-## **5. Spark UI: The **Stages** Page**  
-   - What are Stages in Spark?  
-   - Understanding Stage Breakdown and DAG  
-   - Shuffle Read and Write Metrics  
-   - Task Execution within a Stage  
+3. **Optimized memory allocation for executors**:
 
-## **6. Spark UI: The **Tasks** Page**  
-   - What are Tasks in Spark?  
-   - Understanding Task Distribution across Executors  
-   - Task Metrics (Execution Time, GC Time, Input Size, Output Size)  
-   - Troubleshooting Slow Tasks  
+   .. code-block:: python
 
+       spark.conf.set("spark.executor.memory", "8g")
+       spark.conf.set("spark.executor.cores", "4")
 
+**Outcome:**  
+🚀 **Job execution time reduced from 30 minutes to just 10 minutes**, with **better memory and shuffle efficiency**.
 
-## **7. Spark UI: The **Storage** Page**  
-   - Understanding RDD Storage  
-   - Cached Data Visualization  
-   - Memory Usage and Persistence in Spark  
-   - How to Optimize RDD Storage? 
+---
 
+Case Study 2: Fixing Frequent OutOfMemory (OOM) Errors in AWS Glue
+-------------------------------------------------------------------
 
-## **8. Spark UI: The **Environment** Page**  
-   - Spark Configuration Parameters  
-   - JVM, System Properties, and Classpath Information  
-   - Debugging Configuration Issues  
+**Challenge:**  
+A Spark job **processing terabytes of data** was **failing due to frequent OOM errors**.  
 
+**How Spark UI Helped:**  
+- The **Executors Page** showed **tasks failing due to insufficient memory**.  
+- The **Jobs Page** indicated **shuffle-heavy operations consuming excessive memory**.  
 
-## **9. Spark UI: The **Executors** Page**  
-   - Understanding Executors in Spark  
-   - Active vs. Dead Executors  
-   - Executor Metrics (Memory, Disk, CPU Usage, Task Count)  
-   - Identifying Bottlenecks Using the Executors Page  
+**Optimizations Applied:**
+1. **Increased executor memory and cores** to better handle large partitions:
 
+   .. code-block:: python
 
-## **10. Spark UI: The **SQL** Page (For Spark SQL Users)**  
-   - Query Execution Plan Overview  
-   - Understanding Physical and Logical Plans  
-   - How to Optimize Spark SQL Queries Using the UI?  
+       spark.conf.set("spark.executor.memory", "10g")
+       spark.conf.set("spark.executor.cores", "4")
 
+2. **Used `coalesce()` instead of `repartition()` to optimize shuffle size**:
 
-## **11. Advanced Spark UI Features**  
-   - Event Timeline and Visualization  
-   - Customizing Spark UI Logging  
-   - Profiling Jobs with Spark UI 
+   .. code-block:: python
 
+       df = df.coalesce(100)
 
-## **12. How to Enable and Use Spark History Server?**  
-   - What is Spark History Server?  
-   - How to Enable Spark History Server?  
-   - Analyzing Past Jobs and Performance Tuning  
+3. **Enabled Garbage Collection (GC) tuning to reduce memory fragmentation**:
 
+   .. code-block:: python
 
-## **13. Debugging and Performance Tuning Using Spark UI**  
-   - Detecting Skewed Data Using the UI  
-   - Identifying Shuffle Issues and Optimizing Joins  
-   - Memory Issues and Garbage Collection Optimization  
-   - Optimizing Cluster Resources Based on UI Insights 
+       spark.conf.set("spark.executor.extraJavaOptions", "-XX:+UseG1GC")
 
+4. **Increased shuffle memory fraction** to avoid excessive GC overhead:
 
-## **14. Common Errors in Spark UI and How to Fix Them**  
-   - UI Not Loading in Cluster Mode  
-   - Jobs Stuck in Pending State  
-   - High GC Time Affecting Task Performance  
-   - Executors Dying Frequently  
+   .. code-block:: python
 
+       spark.conf.set("spark.shuffle.memoryFraction", "0.6")
 
+**Outcome:**  
+✅ **The job completed successfully without OOM errors**, enabling **stable and efficient processing**.
 
-## **15. Automating Performance Monitoring Using Spark UI Logs**  
-   - Extracting Metrics from Spark UI  
-   - Integrating Spark UI Data with External Monitoring Tools (Grafana, Prometheus)  
-   - Automating Alerts for Performance Issues
+---
 
-## **16. Conclusion and Best Practices**  
-   - Key Takeaways from Spark UI  
-   - When to Use Spark UI vs. Other Monitoring Tools?  
-   - Final Tips for Efficient Spark Debugging  
+Case Study 3: Eliminating High Shuffle Costs in AWS Glue Jobs
+-------------------------------------------------------------
 
+**Challenge:**  
+A Glue job processing **10TB of data** suffered from **excessive shuffle spills**, leading to **long execution times**.  
 
-17. Case Studies and Practical Examples
+**How Spark UI Helped:**  
+- The **Stages Page** showed **disk I/O spikes due to shuffle spill**.  
+- The **Executors Page** highlighted **tasks waiting for shuffle reads**.  
 
-Case 1: Reducing Job Execution Time from 30 mins to 10 mins
-Scenario: A Spark job was taking 30 minutes due to excessive shuffling.
+**Optimizations Applied:**
+1. **Enabled Adaptive Query Execution (AQE) to dynamically adjust partitions**:
 
-Solution:
+   .. code-block:: python
 
-Increased shuffle partitions (spark.sql.shuffle.partitions = 300).
-Used broadcast joins.
-Optimized executor memory allocation.
-Result: Job execution time reduced to 10 minutes.
+       spark.conf.set("spark.sql.adaptive.enabled", "true")
 
-Case 2: Fixing OOM Errors in a Large Dataset Processing Job
-Scenario: Job failed with OOM errors while processing a large dataset.
+2. **Optimized join operations using Broadcast Joins**:
 
-Solution:
+   .. code-block:: python
 
-Increased executor-memory and executor-cores.
-Used coalesce() to manage partitions.
-Enabled Garbage Collection (GC) tuning.
-Increased shuffle memory fraction.
-Result: Job ran successfully without OOM errors.
+       df_result = df_large.join(broadcast(df_small), "key")
+
+3. **Reduced shuffle partitions for better task efficiency**:
+
+   .. code-block:: python
+
+       spark.conf.set("spark.sql.shuffle.partitions", "100")
+
+**Outcome:**  
+🔥 **Shuffle spill reduced by 70%, significantly improving execution speed**.
+
+---
+
+Case Study 4: Handling Skewed Data in AWS Glue
+----------------------------------------------
+
+**Challenge:**  
+A **skewed dataset** caused **some tasks to take 10x longer**, creating an **unbalanced workload across executors**.  
+
+**How Spark UI Helped:**  
+- The **Stages Page** showed **a few tasks running significantly longer** than others.  
+- The **Executors Page** indicated **resource underutilization on many nodes**.  
+
+**Optimizations Applied:**
+1. **Applied salting to evenly distribute skewed data**:
+
+   .. code-block:: python
+
+       from pyspark.sql.functions import expr
+       df = df.withColumn("salted_key", expr("concat(key, rand())"))
+
+2. **Enabled Skew Join Optimization in Spark**:
+
+   .. code-block:: python
+
+       spark.conf.set("spark.sql.adaptive.skewJoin.enabled", "true")
+
+3. **Increased parallelism by repartitioning on non-skewed columns**:
+
+   .. code-block:: python
+
+       df = df.repartition(200, "skewed_column")
+
+**Outcome:**  
+⚡ **40% improvement in execution time**, with **better task distribution**.
+
+---
+
+Case Study 5: Reducing AWS Glue Job Costs by 35% with Efficient Caching
+----------------------------------------------------------------------
+
+**Challenge:**  
+A **high-memory AWS Glue job** was **consuming excessive resources**, leading to **higher costs**.  
+
+**How Spark UI Helped:**  
+- The **Storage Page** showed **large cached RDDs consuming memory**.  
+- The **Executors Page** highlighted **memory fragmentation issues**.  
+
+**Optimizations Applied:**
+1. **Used serialized caching to reduce memory footprint**:
+
+   .. code-block:: python
+
+       from pyspark import StorageLevel
+       df.persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+2. **Cleared cached data after processing**:
+
+   .. code-block:: python
+
+       df.unpersist()
+
+3. **Adjusted Spark memory fraction settings**:
+
+   .. code-block:: python
+
+       spark.conf.set("spark.memory.fraction", "0.7")
+
+**Outcome:**  
+💰 **AWS Glue job costs reduced by 35%, while maintaining job efficiency**.
+
+---
+
+Case Study 6: Speeding Up Machine Learning Workloads in SageMaker Spark
+----------------------------------------------------------------------
+
+**Challenge:**  
+A **Spark ML job in SageMaker** was **taking too long to complete**, delaying **real-time model training**.  
+
+**How Spark UI Helped:**  
+- The **Tasks Page** showed **long-running tasks on a few nodes**.  
+- The **Executors Page** highlighted **resource underutilization**.  
+
+**Optimizations Applied:**
+1. **Enabled Dynamic Allocation to auto-scale executors**:
+
+   .. code-block:: python
+
+       spark.conf.set("spark.dynamicAllocation.enabled", "true")
+
+2. **Optimized parallelism with additional executor instances**:
+
+   .. code-block:: python
+
+       spark.conf.set("spark.executor.instances", "10")
+
+3. **Replaced `repartition()` with `coalesce()` for efficient partitioning**:
+
+   .. code-block:: python
+
+       df = df.coalesce(50)
+
+**Outcome:**  
+⏳ **Job latency reduced by 50%, enabling faster ML training**.
+
+---
+
 
 
 Reference :
