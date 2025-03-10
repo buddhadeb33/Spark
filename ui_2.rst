@@ -1,10 +1,10 @@
 
 
 -----------------------------------------------------------------
-Understanding Spark UI – A Complete Guide**  
+Understanding Spark UI – A Complete Guide
 -----------------------------------------------------------------
 
-# **Table of Contents: 
+# Table of Contents: 
 
 ## **1. Introduction to Spark UI**  
 
