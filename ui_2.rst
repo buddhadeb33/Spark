@@ -1,5 +1,3 @@
-
-
 -----------------------------------------------------------------
 Understanding Spark UI – A Complete Guide
 -----------------------------------------------------------------
@@ -232,7 +230,6 @@ High shuffle read/write sizes indicate inefficient data distribution, which can 
 
 Task Execution within a Stage
 -----------------------------
-
 Each stage consists of **multiple tasks**, which are executed in parallel across worker nodes. The **Stages Page** provides insights into:
 - **Task execution time** (average, min, max).
 - **GC time** (impact of garbage collection).
@@ -670,11 +667,216 @@ Improve Aggregations with AQE (Adaptive Query Execution)
 Advanced Spark UI Features
 ===========================
 
-How to Enable and Use Spark History Server?
-===========================================
+Spark UI provides several advanced features that help in **visualizing job execution, customizing logs, and profiling Spark jobs**. These tools assist in debugging, optimizing, and monitoring large-scale Spark applications.
+
+Event Timeline and Visualization
+--------------------------------
+
+The **Event Timeline** in Spark UI provides a **graphical representation of job execution**, helping users analyze task execution, delays, and dependencies.
+
+- **What is the Event Timeline?**
+  - A **visual representation** of when jobs, stages, and tasks start and finish.
+  - Helps in identifying **long-running stages, bottlenecks, and delays**.
+
+- **How to Use the Event Timeline in AWS Glue?**
+  - Go to **Spark UI > Jobs Page > Event Timeline**.
+  - Hover over tasks to see **execution details, shuffle operations, and memory usage**.
+  - Analyze **overlapping executions** to optimize parallelism.
+
+- **Common Issues Identified with Event Timeline**
+  - **Tasks running sequentially instead of parallel** → Check partitioning.
+  - **Long shuffle operations** → Optimize **Spark shuffle configurations**.
+  - **Executors sitting idle** → Tune **resource allocation**.
+
+Customizing Spark UI Logging
+----------------------------
+
+Spark UI logs execution details that can be **customized for better debugging**.
+
+- **Configuring Log Levels in AWS Glue**
+  - AWS Glue jobs use **CloudWatch for log storage**.
+  - Adjust **Spark log levels** dynamically:
+
+    .. code-block:: python
+
+        spark.sparkContext.setLogLevel("INFO")  # Options: INFO, WARN, ERROR, DEBUG
+
+- **Enabling Extra Logging in Spark UI**
+  - Use the following configuration to **capture detailed execution logs**:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.eventLog.enabled", True)
+        spark.conf.set("spark.eventLog.dir", "s3://my-logs-folder/")
+
+- **Filtering Logs for Debugging**
+  - In AWS Glue **CloudWatch**, use **log filters** to isolate issues.
+  - **Common logs to check**:
+    - **Memory Usage Logs**: Check for **OOM errors**.
+    - **Shuffle Logs**: Identify **data skew issues**.
+    - **Task Execution Logs**: Find **failed or slow tasks**.
+
+Profiling Jobs with Spark UI
+----------------------------
+
+Profiling helps in analyzing **performance bottlenecks** using Spark UI.
+
+- **Key Metrics to Monitor**
+  - **Task Execution Time** → Identify slow tasks.
+  - **Shuffle Read/Write** → Detect excessive data movement.
+  - **GC (Garbage Collection) Time** → Spot memory inefficiencies.
+
+- **How to Profile AWS Glue Jobs Using Spark UI?**
+  1. Run the **AWS Glue job with Spark UI enabled**.
+  2. Open **Executors Page** to check CPU/memory usage.
+  3. Use **SQL Page** to analyze query execution plans.
+  4. Check **Event Timeline** for execution delays.
+
+- **Optimizing AWS Glue Jobs Using Profiling Data**
+  - Reduce execution time by **adjusting partitions**:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.sql.shuffle.partitions", 100)
+
+  - Optimize **Garbage Collection (GC) performance**:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.memory.fraction", 0.6)
+
+  - Enable **Adaptive Query Execution (AQE)** for dynamic optimizations:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.sql.adaptive.enabled", True)
+
+
 
 Debugging and Performance Tuning Using Spark UI
 ===============================================
+
+Spark UI provides powerful insights for **debugging performance issues, detecting data skew, optimizing memory usage, and tuning cluster resources**. By analyzing different UI components, users can identify bottlenecks and optimize Spark jobs efficiently in **AWS Glue**.
+
+Detecting Skewed Data Using the UI
+----------------------------------
+
+Data skew occurs when **some partitions contain significantly more data than others**, leading to **uneven task execution times**.
+
+- **How to Detect Data Skew in Spark UI?**
+  - Go to **Stages Page** and check the **Task Execution Timeline**.
+  - Look for **tasks that take significantly longer than others**.
+  - Check the **Shuffle Read and Write Size** → Unequal data distribution indicates skew.
+
+- **Fixing Data Skew in AWS Glue**
+  - **Salting Keys**: If a particular key causes skew, randomize key values:
+
+    .. code-block:: python
+
+        from pyspark.sql.functions import col, expr
+
+        df = df.withColumn("skewed_key", expr("concat(key, rand())"))
+
+  - **Repartition Skewed Data**: Increase partitions dynamically:
+
+    .. code-block:: python
+
+        df = df.repartition(100, "skewed_column")
+
+  - **Broadcast Smaller Tables**: Reduce shuffle by broadcasting small datasets:
+
+    .. code-block:: python
+
+        from pyspark.sql.functions import broadcast
+
+        df_join = df_large.join(broadcast(df_small), "key")
+
+Identifying Shuffle Issues and Optimizing Joins
+-----------------------------------------------
+
+Shuffle operations occur when data is **redistributed across executors**, often due to **joins, aggregations, or wide transformations**.
+
+- **How to Detect Shuffle Issues?**
+  - Open **Jobs Page** → Look for **long-running shuffle stages**.
+  - Check **Shuffle Read/Write Size** in the **Stages Page**.
+  - High **Shuffle Spill (Disk)** means data is exceeding memory.
+
+- **Optimizing Shuffle Operations**
+  - **Increase Shuffle Partitions**: 
+
+    .. code-block:: python
+
+        spark.conf.set("spark.sql.shuffle.partitions", 200)
+
+  - **Use Broadcast Joins** for small tables:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "10MB")
+
+  - **Avoid Unnecessary Shuffling**: Use **coalesce()** instead of **repartition()** when reducing partitions.
+
+Memory Issues and Garbage Collection Optimization
+-------------------------------------------------
+
+Memory bottlenecks in AWS Glue can cause **long GC pauses, executor failures, or out-of-memory (OOM) errors**.
+
+- **How to Detect Memory Issues?**
+  - Open the **Executors Page** → Check **JVM Memory Usage**.
+  - High **Garbage Collection (GC) Time** indicates memory pressure.
+  - **OOM Errors in Logs** → Memory-intensive operations like **caching large datasets**.
+
+- **Optimizing Memory Usage**
+  - **Increase Memory Allocation**: Adjust AWS Glue worker memory settings.
+  - **Reduce GC Overhead**: 
+
+    .. code-block:: python
+
+        spark.conf.set("spark.memory.fraction", 0.6)
+        spark.conf.set("spark.memory.storageFraction", 0.4)
+
+  - **Use Serialized Caching** for large RDDs:
+
+    .. code-block:: python
+
+        rdd.persist(storageLevel=StorageLevel.MEMORY_AND_DISK_SER)
+
+  - **Avoid Collecting Large Datasets**: Use **take()** instead of **collect()**:
+
+    .. code-block:: python
+
+        df.take(10)  # Instead of df.collect()
+
+Optimizing Cluster Resources Based on UI Insights
+-------------------------------------------------
+
+AWS Glue jobs run on **distributed clusters**, so proper resource allocation is crucial.
+
+- **Identifying Resource Bottlenecks in Spark UI**
+  - **Executors Page** → Look for **idle executors** (wasted resources).
+  - **Task Distribution** → Ensure tasks are evenly spread across executors.
+  - **CPU and Memory Utilization** → Optimize based on **usage patterns**.
+
+- **Tuning AWS Glue Cluster Resources**
+  - **Scale Executors Based on Workload**:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.dynamicAllocation.enabled", "true")
+
+  - **Optimize Parallelism** by adjusting the number of **executors and cores per executor**:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.executor.instances", 10)
+        spark.conf.set("spark.executor.cores", 4)
+
+  - **Enable Adaptive Query Execution (AQE)** to dynamically optimize query execution:
+
+    .. code-block:: python
+
+        spark.conf.set("spark.sql.adaptive.enabled", "true")
+
 
 Common Errors in Spark UI and How to Fix Them
 ==============================================
