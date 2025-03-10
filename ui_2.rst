@@ -409,6 +409,79 @@ To make efficient use of memory, consider the following optimization techniques:
 
 Spark UI: The Environment Page
 ==============================
+The **Environment Page** in Spark UI provides detailed information about **Spark configuration settings, system properties, and the classpath**. In **AWS Glue**, this page is useful for debugging configuration issues, checking resource allocations, and ensuring optimal job execution.
+
+Spark Configuration Parameters
+------------------------------
+
+AWS Glue uses **Apache Spark** under the hood, and Spark relies on **configuration parameters** to control job execution, memory management, and resource utilization. These parameters can be set in:
+- **AWS Glue Job Parameters** (via AWS Console or API).
+- **Glue Context (glueContext)** in the Spark script.
+- **Spark Configuration Overrides** in AWS Glue.
+
+### **Key Spark Configuration Parameters in AWS Glue**
+The **Environment Page** displays all active **Spark properties**, including:
+
+1. **AWS Glue-Specific Configurations**
+   - ``--job-language`` → Specifies the job language (``python``, ``scala``).
+   - ``--enable-metrics`` → Enables monitoring metrics.
+   - ``--enable-glue-datacatalog`` → Enables Glue Data Catalog integration.
+   - ``--TempDir`` → Defines the S3 path for temporary storage.
+
+2. **Spark Execution & Resource Configurations**
+   - ``spark.executor.memory`` → Memory allocated per executor in Glue.
+   - ``spark.driver.memory`` → Memory allocated to the driver node.
+   - ``spark.sql.shuffle.partitions`` → Number of partitions for shuffle operations.
+
+3. **Memory & Storage Settings**
+   - ``spark.memory.fraction`` → Defines how much memory is reserved for execution.
+   - ``spark.memory.storageFraction`` → Controls memory split between execution and storage.
+
+4. **Shuffle & I/O Performance**
+   - ``spark.shuffle.service.enabled`` → Enables external shuffle service.
+   - ``spark.sql.adaptive.enabled`` → Enables Adaptive Query Execution (AQE).
+   - ``spark.sql.broadcastTimeout`` → Timeout for broadcast joins.
+
+JVM, System Properties, and Classpath Information
+-------------------------------------------------
+
+The **Environment Page** also displays **JVM settings**, **system properties**, and **classpath entries**, which influence Spark execution.
+
+### **1. JVM Information**
+   - **Java Version** used in AWS Glue.
+   - **JVM options** like ``-Xms`` and ``-Xmx`` (heap memory settings).
+   - **Garbage Collection (GC) settings**.
+
+### **2. System Properties**
+   - **AWS Glue version** (e.g., Glue 3.0, Glue 4.0).
+   - **Python runtime version** (Python 3.x for Glue ETL jobs).
+   - **Spark UI & history server configurations**.
+
+### **3. Classpath Entries**
+   - Lists JAR files loaded in AWS Glue.
+   - Useful for debugging **missing dependencies** in Glue ETL jobs.
+
+Debugging Configuration Issues
+------------------------------
+
+Incorrect Spark configurations can lead to **performance bottlenecks, memory issues, or job failures**. The **Environment Page** helps debug such issues by checking:
+
+1. **Memory Allocation Problems**
+   - **Issue**: ``OutOfMemoryError`` or **job crashing** due to insufficient memory.
+   - **Fix**: Increase ``--MaxCapacity`` or use ``--worker-type G.1X/G.2X`` for more memory.
+
+2. **Incorrect AWS Glue Job Parameters**
+   - **Issue**: Glue job failing due to missing configurations.
+   - **Fix**: Verify **job parameters** in AWS Glue console.
+
+3. **Slow Performance Due to Suboptimal Partitioning**
+   - **Issue**: Jobs running slowly due to excessive shuffle partitions.
+   - **Fix**: Adjust ``spark.sql.shuffle.partitions`` based on data size.
+
+4. **Missing Dependencies (JARs or Python Libraries)**
+   - **Issue**: ``ModuleNotFoundError`` or ``ClassNotFoundException`` errors.
+   - **Fix**: Ensure dependencies are included in ``--extra-py-files`` or ``--extra-jars``.
+
 
 Spark UI: The Executors Page
 ============================
