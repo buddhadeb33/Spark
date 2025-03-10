@@ -485,9 +485,187 @@ Incorrect Spark configurations can lead to **performance bottlenecks, memory iss
 
 Spark UI: The Executors Page
 ============================
+The **Executors Page** in Spark UI provides a detailed view of **all executors running in an AWS Glue job**, showing their resource utilization and performance metrics. This page helps **monitor executor health, identify bottlenecks, and optimize resource allocation**.
+
+Understanding Executors in Spark (AWS Glue)
+-------------------------------------------
+
+In **AWS Glue**, Spark runs in a **serverless environment**, and executors are automatically managed based on the job configuration.
+
+### **How Executors Work in AWS Glue?**
+- AWS Glue dynamically **allocates and scales executors** based on:
+  - **Job Capacity** (``--MaxCapacity``).
+  - **Worker Type** (``--worker-type G.1X, G.2X``).
+  - **Auto Scaling** (for Glue 3.0+).
+- Unlike traditional Spark on YARN, there is **no static cluster**—executors start and terminate as needed.
+
+### **Executor Types in AWS Glue**
+- **Driver Node (Master)**: Manages job execution, schedules tasks.
+- **Worker Executors**: Process data, execute Spark tasks.
+
+Active vs. Dead Executors
+-------------------------
+
+AWS Glue **automatically manages executor lifecycle**, but monitoring active and dead executors can help diagnose issues.
+
+### **Active Executors**
+- Executors currently processing Spark tasks.
+- The **number of active executors depends on Glue job settings**.
+- More active executors = **better parallelism** (if configured properly).
+
+### **Dead Executors**
+- Executors that **failed** or **exited due to memory/resource limits**.
+- May indicate **OOM (Out of Memory) errors**, **network failures**, or **driver-executor communication issues**.
+- If Glue jobs experience frequent executor failures, check:
+  - **``spark.executor.memory`` settings**.
+  - **S3 I/O performance** (data retrieval delays).
+  - **Shuffle operations causing memory overload**.
+
+Executor Metrics (Memory, Disk, CPU Usage, Task Count)
+------------------------------------------------------
+
+The **Executors Page** provides key metrics for monitoring **resource usage per executor**.
+
+### **1. Memory Usage**
+- ``Total Memory``: Maximum memory allocated per executor.
+- ``Used Memory``: Actual memory used for task execution.
+- **High memory usage** can lead to **OutOfMemoryError (OOM)** → Increase **``spark.executor.memory``**.
+
+### **2. Disk Usage**
+- Executors store intermediate shuffle data.
+- **High disk usage** means **data spilling from memory** → Optimize caching & storage levels.
+
+### **3. CPU Usage**
+- ``CPU cores used`` per executor.
+- If CPU usage is low, **increase parallelism** (adjust ``spark.sql.shuffle.partitions``).
+
+### **4. Task Count**
+- ``Total Tasks`` executed by each executor.
+- If **tasks are unevenly distributed**, optimize partitioning.
+
+Identifying Bottlenecks Using the Executors Page
+------------------------------------------------
+
+### **1. Memory Bottlenecks**
+- **High memory usage per executor** → Increase executor memory.
+- **Frequent garbage collection (GC)** → Adjust memory fraction.
+
+### **2. Skewed Task Distribution**
+- If one executor is overloaded → Data skew issue.
+- Use **``salting``** or **``repartition()``** to balance data.
+
+### **3. Disk Spills and Slow Shuffle Operations**
+- High **disk spill** → Increase **executor memory** or **adjust shuffle partitions**.
+
+### **4. Executor Failures**
+- Check **dead executors logs**.
+- Increase ``--MaxCapacity`` in AWS Glue for more stable execution.
+
 
 Spark UI: The SQL Page (For Spark SQL Users)
 ============================================
+
+The **SQL Page** in Spark UI provides insights into **query execution plans, performance metrics, and optimization strategies** for **Spark SQL queries**. This page helps users debug slow queries and optimize SQL-based workloads in **AWS Glue**.
+
+Query Execution Plan Overview
+-----------------------------
+
+When running **Spark SQL queries** in AWS Glue, Spark internally converts them into an **execution plan**. The SQL Page provides a **detailed breakdown** of how queries are processed, including:
+
+- **Logical Plan**: Represents the initial structure of the query.
+- **Optimized Logical Plan**: Spark applies optimizations like predicate pushdown.
+- **Physical Plan**: The actual execution strategy, including join types, partitioning, and data shuffling.
+
+Each query listed on the SQL Page contains:
+
+- **Query Execution Time**
+- **Number of Tasks**
+- **Shuffle Read/Write Metrics**
+- **Broadcast Joins (if applicable)**
+- **Input & Output Row Counts**
+
+Understanding Physical and Logical Plans
+----------------------------------------
+
+Logical and physical plans help users analyze how Spark processes queries.
+
+Logical Plan
+^^^^^^^^^^^^
+
+- Represents the **raw structure** of the SQL query.
+- Shows the **sequence of transformations** (e.g., filters, joins, aggregations).
+- Spark optimizes this using the **Catalyst Optimizer**.
+
+Optimized Logical Plan
+^^^^^^^^^^^^^^^^^^^^^^
+
+- Spark applies **query optimizations** such as:
+  
+  - **Predicate Pushdown** (filtering early to reduce data size).
+  - **Constant Folding** (pre-evaluating constant expressions).
+  - **Reordering Joins** (optimizing join order).
+
+Physical Plan
+^^^^^^^^^^^^^
+
+- Defines how the query **executes on Spark clusters**.
+- Displays **execution strategies**, such as:
+  
+  - **SortMergeJoin vs. BroadcastJoin** (for join optimizations).
+  - **Exchange Nodes** (data shuffling between executors).
+  - **File Scans** (how data is read from S3).
+
+Execution Metrics
+^^^^^^^^^^^^^^^^^
+
+- **Total execution time** for each stage.
+- **Number of partitions processed**.
+- **Data read/write volume** (useful for S3 optimization in AWS Glue).
+
+How to Optimize Spark SQL Queries Using the UI?
+-----------------------------------------------
+
+The SQL Page helps diagnose and improve **query performance** in AWS Glue.
+
+Identify Inefficient Joins
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- **Look for SortMergeJoins** → If small tables exist, enable **broadcast joins** using:
+
+  .. code-block:: python
+
+      spark.sql("SET spark.sql.autoBroadcastJoinThreshold = 10MB")
+
+- Reduce shuffle by **increasing parallelism** in joins.
+
+Optimize File Scanning
+^^^^^^^^^^^^^^^^^^^^^^
+
+- **Check scan operations** in the Physical Plan.
+- If Glue is scanning too much data, **enable partition pruning**:
+
+  .. code-block:: python
+
+      df = spark.read.format("parquet").load("s3://my-bucket/data/")
+      df.filter("date='2024-03-10'")  # Ensure column is partitioned
+
+Reduce Shuffle Operations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- If **shuffle read/write is high**, increase ``spark.sql.shuffle.partitions`` dynamically:
+
+  .. code-block:: python
+
+      spark.conf.set("spark.sql.shuffle.partitions", 200)
+
+Improve Aggregations with AQE (Adaptive Query Execution)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Enable **AQE** for dynamic query optimization:
+
+  .. code-block:: python
+
+      spark.conf.set("spark.sql.adaptive.enabled", True)
 
 Advanced Spark UI Features
 ===========================
