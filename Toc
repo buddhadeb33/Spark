@@ -1,0 +1,54 @@
+
+1. Introduction
+
+Overview of Default Glue Sessions
+
+Creating Spark Sessions
+
+
+
+2. AWS Glue Configuration
+
+Understanding Glue Worker Types & Workers
+
+Function to Determine Dataset Size & Optimal Glue Configurations
+
+
+
+3. Data Ingestion & Exploration
+
+Data Reading from S3 & Dataset Characteristics
+
+
+
+4. ETL Job Execution
+
+ETL Job Definition: Data Reading, Processing & Transformations
+
+Running Spark ETL with Default Glue Configurations
+
+
+
+5. Glue & Spark Optimization
+
+Auto-Optimized Glue Configurations
+
+Worker Type & Configuration Reconfiguration
+
+AWS Spark Configuration Tuning Table
+
+Additional Spark Tuning Strategies
+
+
+
+6. Auto-Tuning & Performance Analysis
+
+Auto-Suggestion for Advanced Spark Configurations
+
+Self-Tuning Function for Dynamic Configuration Adjustment
+
+Inspecting Essential Spark Parameters
+
+Execution Time Comparison Across Configurations
+
+Performance Analysis & Spark UI Deep Dive
